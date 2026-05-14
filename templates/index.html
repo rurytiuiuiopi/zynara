@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZYNARA</title>
+  <meta name="description" content="Official ZYNARA Music Store — buy and stream exclusive tracks" />
+  <meta name="theme-color" content="#a855f7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ZYNARA" />
+  <link rel="apple-touch-icon" href="/static/img/icon-192.png" />
+  <link rel="manifest" href="/static/manifest.json" />
   <link rel="stylesheet" href="/static/css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -148,5 +155,10 @@
   </footer>
 
   <script src="/static/js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js');
+    }
+  </script>
 </body>
 </html>
