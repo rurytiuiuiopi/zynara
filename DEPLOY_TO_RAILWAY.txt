@@ -1,0 +1,41 @@
+╔══════════════════════════════════════════════════════════════╗
+║         ZYNARA – Deploy to Railway (Permanent Link)         ║
+╚══════════════════════════════════════════════════════════════╝
+
+Railway gives you a FREE permanent link like:
+  https://zynara-production.up.railway.app
+
+STEP 1 – Create a free GitHub account (if you don't have one)
+  https://github.com/signup
+
+STEP 2 – Upload your zynara folder to GitHub
+  1. Go to https://github.com/new
+  2. Name it "zynara", set to Private, click Create
+  3. Click "uploading an existing file"
+  4. Drag your entire zynara folder contents in
+  5. Click "Commit changes"
+
+STEP 3 – Deploy on Railway
+  1. Go to https://railway.app
+  2. Click "Start a New Project"
+  3. Click "Deploy from GitHub repo"
+  4. Sign in with your GitHub account
+  5. Select your "zynara" repo
+  6. Railway auto-detects everything and deploys it!
+
+STEP 4 – Get your public link
+  1. In Railway dashboard, click your project
+  2. Click "Settings" → "Domains"
+  3. Click "Generate Domain"
+  4. Your link appears — share it with fans!
+
+STEP 5 – Add your .env variables on Railway
+  1. In Railway dashboard, click your project
+  2. Click "Variables"
+  3. Add each line from your .env file here
+  (This keeps your MoMo keys safe and secret)
+
+══════════════════════════════════════════════════════════════
+  Total time: about 10 minutes
+  Cost: FREE (Railway free tier covers a music store easily)
+══════════════════════════════════════════════════════════════

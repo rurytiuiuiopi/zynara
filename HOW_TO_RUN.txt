@@ -1,0 +1,70 @@
+╔══════════════════════════════════════════════════════════════╗
+║                   ZYNARA – Setup Guide                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+STEP 1 – Add your music files
+──────────────────────────────
+• Put your MP3 files in:        zynara\static\songs\
+• Put your album cover in:      zynara\static\img\album-cover.jpg
+• (Optional) Per-song covers:   zynara\static\img\<cover-filename>.jpg
+
+STEP 2 – Edit songs.json
+──────────────────────────
+Open zynara\songs.json and fill in:
+  - "title"         → Your album name
+  - "artist"        → Your artist name
+  - "description"   → Short description (shown on the page)
+  - "year"          → Release year
+  - "album_price"   → Full album price as a number (e.g. 5.00)
+  - "album_price_display" → How it shows to fans (e.g. "GHS 5.00")
+  For each song:
+  - "title"         → Song title
+  - "file"          → MP3 filename (must match file in static/songs/)
+  - "duration"      → e.g. "3:24"
+  - "price"         → Price as a number (e.g. 1.00)
+  - "price_display" → e.g. "GHS 1.00"
+  Add as many songs as you want by copying the song block.
+
+STEP 3 – Set up MTN MoMo
+──────────────────────────
+1. Go to: https://momodeveloper.mtn.com
+2. Create a free account
+3. Subscribe to the "Collection" product → copy your Primary Key
+4. Create an API User and API Key using the Sandbox provisioning API
+   (The developer portal has a guide for this)
+5. Copy zynara\.env.example  →  zynara\.env
+6. Fill in your keys in .env:
+     MOMO_SUBSCRIPTION_KEY=...
+     MOMO_API_USER=...
+     MOMO_API_KEY=...
+
+   For TESTING use sandbox (no real money moves):
+     MOMO_ENV=sandbox
+     MOMO_CURRENCY=EUR
+     MOMO_BASE_URL=https://sandbox.momodeveloper.mtn.com
+
+   For LIVE (real payments):
+     MOMO_ENV=mtnghana          ← or mtnuganda, mtncongo, etc.
+     MOMO_CURRENCY=GHS          ← your country currency
+     MOMO_BASE_URL=https://proxy.momoapi.mtn.com
+
+STEP 4 – Run the app
+──────────────────────
+Open a terminal in the zynara folder and run:
+
+    python app.py
+
+Then open your browser at:  http://localhost:5000
+
+STEP 5 – Share with fans
+──────────────────────────
+To make the app available online, you can deploy it to:
+• Railway.app (free tier, very easy)
+• Render.com (free tier)
+• Any VPS (DigitalOcean, Hetzner, etc.)
+
+Just set the same .env variables on the hosting platform.
+
+══════════════════════════════════════════════════════════════
+  Questions? Edit songs.json to update your music at any time.
+══════════════════════════════════════════════════════════════

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZYNARA</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- DEMO BANNER (hidden in production) -->
+  <div id="demoBanner" class="demo-banner hidden">
+    🛠️ <strong>Demo Mode</strong> — MoMo payments auto-approve. Add your real keys in <code>.env</code> to go live.
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">ZYNARA</div>
+    <div class="header-tag">Official Music Store</div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="album-cover-wrap">
+        <img id="albumCoverImg" src="/static/img/album-cover.jpg" alt="Album Cover" class="album-cover" onerror="this.src='/static/img/placeholder.svg'" />
+        <div class="album-pulse"></div>
+      </div>
+      <div class="hero-text">
+        <p class="hero-label">New Album</p>
+        <h1 id="albumTitle" class="album-title">Loading...</h1>
+        <p id="artistName" class="artist-name"></p>
+        <p id="albumDesc" class="album-desc"></p>
+        <div class="album-meta">
+          <span id="songCount" class="meta-chip">— songs</span>
+          <span id="albumYear" class="meta-chip"></span>
+        </div>
+        <button class="btn-album" id="buyAlbumBtn">
+          <span class="btn-icon">🎵</span>
+          <span class="btn-text">Buy Full Album</span>
+          <span class="btn-price" id="albumPrice"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRACK LIST -->
+  <section class="tracklist-section">
+    <h2 class="section-title">Tracks</h2>
+    <div id="trackList" class="track-list"></div>
+  </section>
+
+  <!-- STICKY PLAYER -->
+  <div id="player" class="player hidden">
+    <div class="player-left">
+      <button id="playerPlayBtn" class="player-play-btn" aria-label="Play/Pause">
+        <svg id="playerPlayIcon" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg id="playerPauseIcon" viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="hidden"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="player-info">
+        <div id="playerTitle" class="player-title">—</div>
+        <div id="playerArtist" class="player-artist">—</div>
+      </div>
+    </div>
+    <div class="player-center">
+      <div class="progress-wrap">
+        <span id="playerCurrent" class="time">0:00</span>
+        <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100" step="0.1" />
+        <span id="playerDuration" class="time">0:00</span>
+      </div>
+    </div>
+    <div class="player-right">
+      <input type="range" id="volumeBar" class="volume-bar" value="80" min="0" max="100" />
+    </div>
+    <audio id="audioEl"></audio>
+  </div>
+
+  <!-- PURCHASE MODAL -->
+  <div id="purchaseModal" class="modal-overlay hidden">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">&#x2715;</button>
+      <div class="modal-header">
+        <div class="modal-icon">📱</div>
+        <h2 class="modal-title">Buy with MTN MoMo</h2>
+      </div>
+
+      <!-- Step 1: Enter number -->
+      <div id="stepPhone" class="modal-step">
+        <div class="purchase-item-info">
+          <img id="modalCover" src="/static/img/album-cover.jpg" alt="" class="modal-cover" onerror="this.src='/static/img/placeholder.svg'" />
+          <div>
+            <p id="modalItemName" class="modal-item-name"></p>
+            <p id="modalItemPrice" class="modal-item-price"></p>
+          </div>
+        </div>
+        <label class="input-label">Your MTN MoMo Phone Number</label>
+        <div class="phone-input-wrap">
+          <span class="country-code">+</span>
+          <input type="tel" id="phoneInput" class="phone-input" placeholder="e.g. 233244123456" maxlength="15" />
+        </div>
+        <p class="input-hint">Enter your full number with country code (e.g. 233 for Ghana)</p>
+        <button class="btn-pay" id="confirmPayBtn">
+          <span id="payBtnText">Send Payment Request</span>
+          <span id="payBtnSpinner" class="spinner hidden"></span>
+        </button>
+        <p id="phoneError" class="error-msg hidden"></p>
+      </div>
+
+      <!-- Step 2: Awaiting approval -->
+      <div id="stepWaiting" class="modal-step hidden">
+        <div class="waiting-anim">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring pulse-ring-2"></div>
+          <div class="phone-icon">📲</div>
+        </div>
+        <h3 class="waiting-title">Check your phone!</h3>
+        <p class="waiting-desc">A payment request has been sent to <strong id="waitingPhone"></strong>. Approve it on your phone to unlock your music.</p>
+        <div class="timer-wrap">
+          <div class="timer-bar-bg"><div id="timerBar" class="timer-bar"></div></div>
+          <span id="timerText" class="timer-text">120s</span>
+        </div>
+        <p id="waitingStatus" class="waiting-status">Waiting for approval...</p>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="stepSuccess" class="modal-step hidden">
+        <div class="success-icon">🎉</div>
+        <h3 class="success-title">Payment Successful!</h3>
+        <p class="success-desc">Your music is now unlocked. Enjoy!</p>
+        <button class="btn-pay" id="playNowBtn">Play Now</button>
+      </div>
+
+      <!-- Step 4: Failed -->
+      <div id="stepFailed" class="modal-step hidden">
+        <div class="fail-icon">❌</div>
+        <h3 class="fail-title">Payment Failed</h3>
+        <p id="failDesc" class="fail-desc">The payment was not approved. Please try again.</p>
+        <button class="btn-pay" id="retryBtn">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>ZYNARA &copy; <span id="footerYear"></span> &mdash; All rights reserved</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
