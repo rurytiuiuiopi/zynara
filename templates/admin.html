@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZYNARA Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24;
+      --accent: #a855f7; --accent2: #7c3aed;
+      --text: #f1f0f5; --muted: #8b8a99;
+      --border: rgba(255,255,255,0.08);
+      --green: #4ade80; --red: #f87171;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* LOGIN */
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 100%; max-width: 380px; text-align: center; }
+    .login-logo { font-size: 2rem; font-weight: 700; letter-spacing: 0.12em; background: linear-gradient(135deg, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+    .login-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+    .login-box input { width: 100%; background: var(--bg3); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-family: inherit; font-size: 1rem; padding: 14px 16px; outline: none; margin-bottom: 12px; }
+    .login-box input:focus { border-color: var(--accent); }
+    .btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.88; }
+    .err { color: var(--red); font-size: 0.82rem; margin-top: 10px; }
+
+    /* DASHBOARD */
+    .dash { display: none; }
+    .topbar { background: rgba(10,10,15,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-logo { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.1em; background: linear-gradient(135deg, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .btn-sm { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block; }
+    .btn-logout { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 8px 16px; font-size: 0.82rem; font-weight: 500; cursor: pointer; font-family: inherit; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+    .section { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; }
+    .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .section-title span { font-size: 1.2rem; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .field input, .field textarea, .field select {
+      width: 100%; background: var(--bg3); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: inherit;
+      font-size: 0.95rem; padding: 12px 14px; outline: none; resize: vertical;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { min-height: 80px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* COVER UPLOAD */
+    .cover-upload-wrap { display: flex; align-items: center; gap: 20px; }
+    .cover-preview { width: 90px; height: 90px; border-radius: 12px; object-fit: cover; background: var(--bg3); border: 1px solid var(--border); flex-shrink: 0; }
+    .cover-upload-btn { display: inline-block; background: var(--bg3); border: 1.5px dashed rgba(168,85,247,0.4); border-radius: 10px; padding: 12px 20px; cursor: pointer; font-size: 0.85rem; color: var(--accent); font-weight: 600; text-align: center; transition: border-color 0.15s; }
+    .cover-upload-btn:hover { border-color: var(--accent); }
+    #coverFileInput { display: none; }
+
+    /* TRACKS */
+    .track-list-admin { display: flex; flex-direction: column; gap: 10px; }
+    .track-row { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: 28px 1fr 1fr 90px 90px 36px; gap: 10px; align-items: center; }
+    .track-num-badge { width: 28px; height: 28px; border-radius: 50%; background: rgba(168,85,247,0.15); color: var(--accent); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .track-row input { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.88rem; padding: 8px 10px; outline: none; width: 100%; }
+    .track-row input:focus { border-color: var(--accent); }
+    .btn-remove { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--red); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-remove:hover { background: rgba(248,113,113,0.2); }
+    .btn-add-track { background: rgba(168,85,247,0.1); border: 1.5px dashed rgba(168,85,247,0.3); border-radius: 10px; color: var(--accent); font-family: inherit; font-size: 0.88rem; font-weight: 600; padding: 12px; cursor: pointer; width: 100%; margin-top: 8px; transition: background 0.15s; }
+    .btn-add-track:hover { background: rgba(168,85,247,0.18); }
+
+    /* FILE upload per track */
+    .file-label { font-size: 0.75rem; color: var(--muted); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 8px; text-align: center; }
+    .file-label:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* SAVE BAR */
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(17,17,24,0.97); backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; z-index: 50; }
+    .save-status { font-size: 0.85rem; color: var(--muted); }
+    .save-status.ok { color: var(--green); }
+    .save-status.err { color: var(--red); }
+    .btn-save { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 10px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+
+    @media (max-width: 600px) {
+      .topbar { padding: 14px 16px; }
+      .container { padding: 24px 14px 100px; }
+      .row2 { grid-template-columns: 1fr; }
+      .track-row { grid-template-columns: 28px 1fr 80px 32px; }
+      .track-row .track-price, .track-row .track-file { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo">ZYNARA</div>
+    <p class="login-sub">Admin Dashboard</p>
+    <input type="password" id="pwdInput" placeholder="Enter your password" />
+    <button class="btn" id="loginBtn">Sign In</button>
+    <p class="err hidden" id="loginErr">Wrong password. Try again.</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-logo">ZYNARA Admin</div>
+    <div class="topbar-right">
+      <a href="/" target="_blank" class="btn-sm">View App ↗</a>
+      <button class="btn-logout" id="logoutBtn">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ALBUM INFO -->
+    <div class="section">
+      <div class="section-title"><span>🎵</span> Album Info</div>
+      <div class="row2">
+        <div class="field">
+          <label>Album Title</label>
+          <input type="text" id="albumTitle" placeholder="e.g. My Album" />
+        </div>
+        <div class="field">
+          <label>Artist Name</label>
+          <input type="text" id="artistName" placeholder="e.g. Shatta Wale" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Year</label>
+          <input type="text" id="albumYear" placeholder="2026" />
+        </div>
+        <div class="field">
+          <label>Full Album Price (e.g. GHS 5.00)</label>
+          <input type="text" id="albumPriceDisplay" placeholder="GHS 5.00" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Album Description</label>
+        <textarea id="albumDesc" placeholder="A short description of your album..."></textarea>
+      </div>
+    </div>
+
+    <!-- ALBUM COVER -->
+    <div class="section">
+      <div class="section-title"><span>🖼️</span> Album Cover</div>
+      <div class="cover-upload-wrap">
+        <img id="coverPreview" class="cover-preview" src="/static/img/album-cover.jpg" alt="Cover" onerror="this.src='/static/img/placeholder.svg'" />
+        <div>
+          <label class="cover-upload-btn" for="coverFileInput">📁 Choose Cover Photo</label>
+          <input type="file" id="coverFileInput" accept="image/*" />
+          <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">JPG or PNG. Will replace your current cover.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACKS -->
+    <div class="section">
+      <div class="section-title"><span>🎧</span> Tracks</div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 90px 90px 36px;gap:10px;padding:0 4px 8px;font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;">
+        <div>#</div><div>Song Title</div><div>Artist</div><div>Duration</div><div>Price</div><div></div>
+      </div>
+      <div class="track-list-admin" id="trackListAdmin"></div>
+      <button class="btn-add-track" id="addTrackBtn">+ Add Track</button>
+    </div>
+
+  </div>
+
+  <!-- SAVE BAR -->
+  <div class="save-bar">
+    <span class="save-status" id="saveStatus">Make changes above and hit Save.</span>
+    <button class="btn-save" id="saveBtn">
+      <span id="saveBtnText">Save & Publish</span>
+      <span id="saveBtnSpinner" class="spinner hidden"></span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ── Auth ───────────────────────────────────────────────────────────
+const loginWrap  = document.getElementById('loginWrap');
+const dashboard  = document.getElementById('dashboard');
+const pwdInput   = document.getElementById('pwdInput');
+const loginErr   = document.getElementById('loginErr');
+
+document.getElementById('loginBtn').addEventListener('click', login);
+pwdInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  sessionStorage.removeItem('zynara_admin');
+  location.reload();
+});
+
+function login() {
+  const pwd = pwdInput.value.trim();
+  fetch('/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pwd })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      sessionStorage.setItem('zynara_admin', d.token);
+      showDashboard();
+    } else {
+      loginErr.classList.remove('hidden');
+    }
+  });
+}
+
+function authToken() { return sessionStorage.getItem('zynara_admin') || ''; }
+
+if (sessionStorage.getItem('zynara_admin')) showDashboard();
+
+function showDashboard() {
+  loginWrap.style.display = 'none';
+  dashboard.style.display = 'block';
+  loadAlbum();
+}
+
+// ── Load album data ────────────────────────────────────────────────
+let songs = [];
+
+function loadAlbum() {
+  fetch('/api/album').then(r => r.json()).then(data => {
+    document.getElementById('albumTitle').value       = data.title || '';
+    document.getElementById('artistName').value       = data.artist || '';
+    document.getElementById('albumYear').value        = data.year || '';
+    document.getElementById('albumDesc').value        = data.description || '';
+    document.getElementById('albumPriceDisplay').value = data.album_price_display || '';
+    songs = data.songs || [];
+    renderTracks();
+  });
+}
+
+// ── Tracks ─────────────────────────────────────────────────────────
+function renderTracks() {
+  const list = document.getElementById('trackListAdmin');
+  list.innerHTML = '';
+  songs.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    row.innerHTML = `
+      <div class="track-num-badge">${i + 1}</div>
+      <input type="text" placeholder="Song title" value="${s.title || ''}" data-i="${i}" data-f="title" />
+      <input type="text" placeholder="Artist" value="${s.artist || ''}" data-i="${i}" data-f="artist" />
+      <input type="text" placeholder="3:24" value="${s.duration || ''}" data-i="${i}" data-f="duration" class="track-price" />
+      <input type="text" placeholder="GHS 1.00" value="${s.price_display || ''}" data-i="${i}" data-f="price_display" class="track-file" />
+      <button class="btn-remove" data-i="${i}" title="Remove track">✕</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('input[data-f]').forEach(el => {
+    el.addEventListener('input', () => {
+      songs[el.dataset.i][el.dataset.f] = el.value;
+    });
+  });
+  list.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      songs.splice(Number(btn.dataset.i), 1);
+      renderTracks();
+    });
+  });
+}
+
+document.getElementById('addTrackBtn').addEventListener('click', () => {
+  const nextId = songs.length ? Math.max(...songs.map(s => Number(s.id) || 0)) + 1 : 1;
+  songs.push({ id: String(nextId), title: '', artist: document.getElementById('artistName').value, duration: '', file: `track${String(nextId).padStart(2,'0')}.mp3`, price: 1.00, price_display: 'GHS 1.00' });
+  renderTracks();
+});
+
+// ── Cover upload preview ───────────────────────────────────────────
+document.getElementById('coverFileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { document.getElementById('coverPreview').src = ev.target.result; };
+  reader.readAsDataURL(file);
+});
+
+// ── Save ───────────────────────────────────────────────────────────
+document.getElementById('saveBtn').addEventListener('click', saveAll);
+
+async function saveAll() {
+  const btn     = document.getElementById('saveBtn');
+  const txt     = document.getElementById('saveBtnText');
+  const spinner = document.getElementById('saveBtnSpinner');
+  const status  = document.getElementById('saveStatus');
+  btn.disabled = true;
+  txt.classList.add('hidden');
+  spinner.classList.remove('hidden');
+  status.className = 'save-status';
+  status.textContent = 'Saving...';
+
+  try {
+    // Upload cover if changed
+    const coverFile = document.getElementById('coverFileInput').files[0];
+    if (coverFile) {
+      const fd = new FormData();
+      fd.append('cover', coverFile);
+      const cr = await fetch('/admin/upload-cover', {
+        method: 'POST',
+        headers: { 'Authorization': authToken() },
+        body: fd
+      });
+      if (!cr.ok) throw new Error('Cover upload failed');
+    }
+
+    // Parse album price number from display string
+    const priceDisplay = document.getElementById('albumPriceDisplay').value.trim();
+    const priceNum = parseFloat(priceDisplay.replace(/[^0-9.]/g, '')) || 5.00;
+
+    // Build updated songs with numeric prices
+    const updatedSongs = songs.map(s => ({
+      ...s,
+      price: parseFloat(String(s.price_display || '').replace(/[^0-9.]/g, '')) || 1.00
+    }));
+
+    const payload = {
+      title:               document.getElementById('albumTitle').value.trim(),
+      artist:              document.getElementById('artistName').value.trim(),
+      year:                document.getElementById('albumYear').value.trim(),
+      description:         document.getElementById('albumDesc').value.trim(),
+      album_price:         priceNum,
+      album_price_display: priceDisplay,
+      cover:               'album-cover.jpg',
+      songs:               updatedSongs
+    };
+
+    const r = await fetch('/admin/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': authToken() },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || 'Save failed');
+
+    status.textContent = '✓ Saved! Your app is updated.';
+    status.className = 'save-status ok';
+  } catch (err) {
+    status.textContent = '✗ ' + (err.message || 'Something went wrong');
+    status.className = 'save-status err';
+  } finally {
+    btn.disabled = false;
+    txt.classList.remove('hidden');
+    spinner.classList.add('hidden');
+  }
+}
+</script>
+</body>
+</html>

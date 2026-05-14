@@ -12,7 +12,8 @@ MOMO_ENV              = os.getenv("MOMO_ENV", "sandbox")          # "sandbox" or
 MOMO_CURRENCY         = os.getenv("MOMO_CURRENCY", "EUR")         # sandbox uses EUR; production uses your local currency
 
 # App secret – used to sign stream tokens
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-to-a-random-secret")
+SECRET_KEY     = os.getenv("SECRET_KEY", "change-me-to-a-random-secret")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "zynara2026")
 
 # Set to True in production
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"

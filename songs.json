@@ -1,111 +1,112 @@
 {
-  "title": "ZYNARA",
-  "artist": "Artist Name",
-  "description": "The debut album. Every track is a story — stream or own the ones that move you.",
-  "year": "2026",
-  "cover": "album-cover.jpg",
-  "album_price": 5.00,
+  "album_price": 5.0,
   "album_price_display": "GHS 5.00",
+  "artist": "Artist Name",
+  "cover": "album-cover.jpg",
+  "demo_mode": true,
+  "description": "The debut album. Every track is a story — stream or own the ones that move you.",
   "songs": [
     {
-      "id": "1",
-      "title": "Track 01",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:24",
       "file": "track01.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "1",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 01"
     },
     {
-      "id": "2",
-      "title": "Track 02",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:51",
       "file": "track02.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "2",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 02"
     },
     {
-      "id": "3",
-      "title": "Track 03",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "4:07",
       "file": "track03.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "3",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 03"
     },
     {
-      "id": "4",
-      "title": "Track 04",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:33",
       "file": "track04.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "4",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 04"
     },
     {
-      "id": "5",
-      "title": "Track 05",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "4:18",
       "file": "track05.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "5",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 05"
     },
     {
-      "id": "6",
-      "title": "Track 06",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:45",
       "file": "track06.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "6",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 06"
     },
     {
-      "id": "7",
-      "title": "Track 07",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "4:02",
       "file": "track07.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "7",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 07"
     },
     {
-      "id": "8",
-      "title": "Track 08",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:57",
       "file": "track08.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "8",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 08"
     },
     {
-      "id": "9",
-      "title": "Track 09",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "3:29",
       "file": "track09.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "9",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 09"
     },
     {
-      "id": "10",
-      "title": "Track 10",
       "artist": "Artist Name",
+      "cover": "album-cover.jpg",
       "duration": "4:44",
       "file": "track10.wav",
-      "cover": "album-cover.jpg",
-      "price": 1.00,
-      "price_display": "GHS 1.00"
+      "id": "10",
+      "price": 1.0,
+      "price_display": "GHS 1.00",
+      "title": "Track 10"
     }
-  ]
+  ],
+  "title": "ZYNARA",
+  "year": "2026"
 }

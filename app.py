@@ -6,7 +6,8 @@ import time
 import mimetypes
 import uuid
 from flask import Flask, jsonify, request, send_from_directory, Response, abort, render_template
-from config import SECRET_KEY, MOMO_CURRENCY, DEBUG, MOMO_SUBSCRIPTION_KEY
+from werkzeug.utils import secure_filename
+from config import SECRET_KEY, MOMO_CURRENCY, DEBUG, MOMO_SUBSCRIPTION_KEY, ADMIN_PASSWORD
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -31,6 +32,101 @@ def load_album():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/admin")
+def admin():
+    return render_template("admin.html")
+
+
+# ── Admin Auth ─────────────────────────────────────────────────────
+
+def _make_admin_token():
+    expiry  = int(time.time()) + 86400 * 7   # 7 days
+    payload = f"admin:{expiry}"
+    sig     = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    import base64
+    return base64.urlsafe_b64encode(f"{payload}:{sig}".encode()).decode()
+
+def _verify_admin_token(token):
+    if not token:
+        return False
+    try:
+        import base64
+        raw     = base64.urlsafe_b64decode(token.encode()).decode()
+        parts   = raw.rsplit(":", 1)
+        if len(parts) != 2:
+            return False
+        payload, sig = parts
+        expected = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return False
+        expiry = int(payload.split(":")[1])
+        return expiry > time.time()
+    except Exception:
+        return False
+
+def admin_required():
+    token = request.headers.get("Authorization", "")
+    return _verify_admin_token(token)
+
+@app.route("/admin/login", methods=["POST"])
+def admin_login():
+    body = request.get_json(silent=True) or {}
+    if body.get("password") == ADMIN_PASSWORD:
+        return jsonify({"ok": True, "token": _make_admin_token()})
+    return jsonify({"ok": False}), 401
+
+
+# ── Admin Save ─────────────────────────────────────────────────────
+
+@app.route("/admin/save", methods=["POST"])
+def admin_save():
+    if not admin_required():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    with open(SONGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True})
+
+
+# ── Admin Cover Upload ─────────────────────────────────────────────
+
+@app.route("/admin/upload-cover", methods=["POST"])
+def admin_upload_cover():
+    if not admin_required():
+        return jsonify({"error": "Unauthorized"}), 401
+    if "cover" not in request.files:
+        return jsonify({"error": "No file"}), 400
+    file = request.files["cover"]
+    if file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+    ext      = os.path.splitext(secure_filename(file.filename))[1].lower() or ".jpg"
+    savepath = os.path.join(os.path.dirname(__file__), "static", "img", f"album-cover{ext}")
+    file.save(savepath)
+    # Also save as album-cover.jpg for consistency
+    if ext != ".jpg":
+        import shutil
+        shutil.copy(savepath, os.path.join(os.path.dirname(__file__), "static", "img", "album-cover.jpg"))
+    return jsonify({"ok": True})
+
+
+# ── Admin Song Upload ──────────────────────────────────────────────
+
+@app.route("/admin/upload-song", methods=["POST"])
+def admin_upload_song():
+    if not admin_required():
+        return jsonify({"error": "Unauthorized"}), 401
+    if "song" not in request.files:
+        return jsonify({"error": "No file"}), 400
+    file     = request.files["song"]
+    filename = secure_filename(file.filename)
+    if not filename:
+        return jsonify({"error": "Empty filename"}), 400
+    savepath = os.path.join(SONGS_DIR, filename)
+    file.save(savepath)
+    return jsonify({"ok": True, "filename": filename})
 
 
 # ── Album data ─────────────────────────────────────────────────────
