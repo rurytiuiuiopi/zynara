@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.*
+venv/
+env/
+
+# Uploads (user-generated content)
+static/shatta/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
