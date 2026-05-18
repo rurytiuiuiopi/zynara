@@ -86,10 +86,8 @@
           <p class="promo-desc">{{ promo.business_description[:100] }}{% if promo.business_description|length > 100 %}…{% endif %}</p>
           <div class="promo-footer">
             <span class="promo-date">{{ promo.created_at[:10] }}</span>
-            <button class="btn btn-sm btn-gold-outline"
-              onclick="openPromoModal({{ promo.id }}, '{{ promo.business_name | e }}', '{{ promo.full_name | e }}', '{{ promo.business_description | replace("'","\'") | replace('"','\\"') }}', '{{ promo.contact_details | e }}')">
-              View Details
-            </button>
+            <a href="{{ url_for('vendor_public_page', vendor_id=promo.vendor_id) }}"
+               class="btn btn-sm btn-gold-outline">View Vendor</a>
           </div>
         </div>
       </div>

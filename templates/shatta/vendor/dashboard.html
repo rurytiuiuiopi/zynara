@@ -11,6 +11,10 @@
         <h1>Welcome, <span class="gold">{{ vendor.full_name.split()[0] }}</span></h1>
         <p class="dash-business">{{ vendor.business_name }}</p>
       </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <a href="{{ url_for('vendor_profile_edit') }}" class="btn btn-outline btn-sm">✏ Edit Profile</a>
+        <a href="{{ url_for('vendor_public_page', vendor_id=vendor.id) }}" class="btn btn-gold-outline btn-sm" target="_blank">👁 Public Page</a>
+      </div>
       <div class="dash-badges">
         {% if vendor.verified_status == 'verified' %}
           <span class="badge badge-verified">✓ Verified Business</span>

@@ -802,6 +802,124 @@ def vendor_public(vendor_id):
     })
 
 
+# ── Vendor profile edit ────────────────────────────────────────────
+
+@app.route("/vendor/profile/edit", methods=["GET", "POST"])
+@login_required
+def vendor_profile_edit():
+    user = current_user()
+    vendor = get_vendor(user["id"])
+    if not vendor:
+        return redirect(url_for("register"))
+
+    if request.method == "POST":
+        full_name       = request.form.get("full_name", "").strip()
+        business_name   = request.form.get("business_name", "").strip()
+        phone           = request.form.get("phone", "").strip()
+        whatsapp        = request.form.get("whatsapp", "").strip()
+        location        = request.form.get("business_location", "").strip()
+        category        = request.form.get("business_category", "").strip()
+        momo_number     = request.form.get("momo_number", "").strip()
+        bank_name       = request.form.get("bank_name", "").strip()
+        bank_account    = request.form.get("bank_account", "").strip()
+
+        if not all([full_name, business_name, phone, location, category]):
+            flash("Please fill in all required fields.", "danger")
+            return redirect(url_for("vendor_profile_edit"))
+
+        social_links = json.dumps({
+            "facebook":  request.form.get("facebook", ""),
+            "instagram": request.form.get("instagram", ""),
+            "twitter":   request.form.get("twitter", ""),
+            "tiktok":    request.form.get("tiktok", ""),
+        })
+        bank_details = json.dumps({"bank_name": bank_name, "account_number": bank_account})
+
+        selfie_path = vendor["selfie_path"]
+        if "selfie" in request.files and request.files["selfie"].filename:
+            new_selfie = save_upload(request.files["selfie"], "selfies", ALLOWED_IMAGE)
+            if new_selfie:
+                selfie_path = new_selfie
+
+        conn = get_db()
+        conn.execute(
+            """UPDATE vendors SET full_name=?, business_name=?, phone=?, whatsapp=?,
+               business_location=?, business_category=?, social_links=?,
+               momo_number=?, bank_details=?, selfie_path=?
+               WHERE id=?""",
+            (full_name, business_name, phone, whatsapp, location, category,
+             social_links, momo_number, bank_details, selfie_path, vendor["id"])
+        )
+        conn.commit()
+        conn.close()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for("vendor_dashboard"))
+
+    return render_template("shatta/vendor/profile_edit.html",
+                           vendor=vendor, categories=BUSINESS_CATEGORIES)
+
+
+# ── Public vendor page ─────────────────────────────────────────────
+
+@app.route("/vendor/<int:vendor_id>")
+def vendor_public_page(vendor_id):
+    conn = get_db()
+    vendor = conn.execute(
+        """SELECT v.*, u.email,
+                  AVG(r.rating) as avg_rating,
+                  COUNT(r.id) as review_count
+           FROM vendors v
+           JOIN users u ON v.user_id = u.id
+           LEFT JOIN reviews r ON r.vendor_id = v.id
+           WHERE v.id = ? AND v.is_suspended = 0
+           GROUP BY v.id""",
+        (vendor_id,)
+    ).fetchone()
+    if not vendor:
+        abort(404)
+
+    promotions = conn.execute(
+        "SELECT * FROM promotions WHERE vendor_id = ? AND status = 'approved' ORDER BY created_at DESC",
+        (vendor_id,)
+    ).fetchall()
+    reviews = conn.execute(
+        "SELECT * FROM reviews WHERE vendor_id = ? AND is_flagged = 0 ORDER BY created_at DESC LIMIT 20",
+        (vendor_id,)
+    ).fetchall()
+    conn.close()
+
+    return render_template(
+        "shatta/public/vendor.html",
+        vendor=vendor,
+        promotions=promotions,
+        reviews=reviews,
+        avg_rating=vendor["avg_rating"],
+        review_count=vendor["review_count"],
+    )
+
+
+# ── Favicon ────────────────────────────────────────────────────────
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.static_folder, "shatta"),
+        "favicon.ico", mimetype="image/vnd.microsoft.icon"
+    )
+
+
+# ── Error handlers ─────────────────────────────────────────────────
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("shatta/errors/404.html"), 404
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    return render_template("shatta/errors/500.html"), 500
+
+
 # ── Static uploads ─────────────────────────────────────────────────
 
 @app.route("/static/shatta/uploads/<path:filename>")

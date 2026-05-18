@@ -1,0 +1,151 @@
+{% extends "shatta/base.html" %}
+{% block title %}Edit Profile — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <div class="section-header">
+      <h1>Edit Your <span class="gold">Profile</span></h1>
+      <p>Update your business details and contact information.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('vendor_profile_edit') }}" enctype="multipart/form-data"
+          class="upload-form">
+
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">👤 Personal Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input type="text" name="full_name" class="form-control"
+                   value="{{ vendor.full_name }}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" name="phone" class="form-control"
+                   value="{{ vendor.phone }}" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Number</label>
+          <input type="tel" name="whatsapp" class="form-control"
+                 value="{{ vendor.whatsapp or '' }}" />
+        </div>
+      </div>
+
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">🏪 Business Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Business Name <span class="required">*</span></label>
+            <input type="text" name="business_name" class="form-control"
+                   value="{{ vendor.business_name }}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Category <span class="required">*</span></label>
+            <select name="business_category" class="form-control" required>
+              {% for cat in categories %}
+              <option value="{{ cat }}" {% if cat == vendor.business_category %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Location <span class="required">*</span></label>
+          <input type="text" name="business_location" class="form-control"
+                 value="{{ vendor.business_location }}" required />
+        </div>
+      </div>
+
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">📱 Social Media Links</h3>
+        {% set links = vendor.social_links | from_json %}
+        <div class="social-links-grid">
+          <div class="social-input">
+            <span class="social-icon">📘</span>
+            <input type="url" name="facebook" class="form-control"
+                   placeholder="Facebook page URL" value="{{ links.facebook if links else '' }}" />
+          </div>
+          <div class="social-input">
+            <span class="social-icon">📸</span>
+            <input type="url" name="instagram" class="form-control"
+                   placeholder="Instagram URL" value="{{ links.instagram if links else '' }}" />
+          </div>
+          <div class="social-input">
+            <span class="social-icon">🐦</span>
+            <input type="url" name="twitter" class="form-control"
+                   placeholder="X (Twitter) URL" value="{{ links.twitter if links else '' }}" />
+          </div>
+          <div class="social-input">
+            <span class="social-icon">🎵</span>
+            <input type="url" name="tiktok" class="form-control"
+                   placeholder="TikTok URL" value="{{ links.tiktok if links else '' }}" />
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">💰 Payment Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">MoMo Number</label>
+            <input type="tel" name="momo_number" class="form-control"
+                   value="{{ vendor.momo_number or '' }}" placeholder="0244 123 456" />
+          </div>
+          {% set bank = vendor.bank_details | from_json %}
+          <div class="form-group">
+            <label class="form-label">Bank Name</label>
+            <input type="text" name="bank_name" class="form-control"
+                   value="{{ bank.bank_name if bank else '' }}" placeholder="e.g. GCB Bank" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bank Account Number</label>
+          <input type="text" name="bank_account" class="form-control"
+                 value="{{ bank.account_number if bank else '' }}" placeholder="Account number" />
+        </div>
+      </div>
+
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">🤳 Update Selfie (optional)</h3>
+        {% if vendor.selfie_path %}
+        <div style="margin-bottom:16px">
+          <img src="/static/{{ vendor.selfie_path }}" alt="Current selfie"
+               style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);" />
+          <p class="form-hint" style="margin-top:6px">Current selfie — upload a new one to replace it.</p>
+        </div>
+        {% endif %}
+        <div class="file-upload-area" onclick="document.getElementById('selfie').click()">
+          <div class="file-upload-icon">🤳</div>
+          <div class="file-upload-text">Upload new selfie (optional)</div>
+          <div class="file-upload-hint">JPG or PNG</div>
+          <div class="file-upload-preview" id="selfiePreview"></div>
+        </div>
+        <input type="file" name="selfie" id="selfie" accept=".jpg,.jpeg,.png"
+               class="file-input-hidden" onchange="previewSelfie(this)" />
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+        <a href="{{ url_for('vendor_dashboard') }}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-gold btn-lg">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function previewSelfie(input) {
+    const preview = document.getElementById('selfiePreview');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.innerHTML = `<img src="${e.target.result}"
+          style="width:72px;height:72px;border-radius:50%;object-fit:cover;margin-top:10px;border:2px solid var(--gold);" />`;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+{% endblock %}

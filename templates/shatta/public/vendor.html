@@ -1,0 +1,190 @@
+{% extends "shatta/base.html" %}
+{% block title %}{{ vendor.business_name }} — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+
+    <!-- VENDOR HERO -->
+    <div class="vendor-hero-card">
+      <div class="vhc-left">
+        {% if vendor.selfie_path %}
+          <img src="/static/{{ vendor.selfie_path }}" alt="{{ vendor.full_name }}"
+               class="vhc-avatar" />
+        {% else %}
+          <div class="vhc-avatar-placeholder">🏪</div>
+        {% endif %}
+        <div class="vhc-info">
+          <div class="vhc-badges">
+            {% if vendor.trust_badge == 'verified' %}
+              <span class="badge badge-verified">✓ Verified Business</span>
+            {% elif vendor.trust_badge == 'trusted' %}
+              <span class="badge badge-trusted">⭐ Trusted Vendor</span>
+            {% endif %}
+            {% if vendor.verified_status == 'verified' %}
+              <span class="badge badge-verified">✓ ID Verified</span>
+            {% endif %}
+          </div>
+          <h1 class="vhc-name">{{ vendor.business_name }}</h1>
+          <p class="vhc-owner">by {{ vendor.full_name }}</p>
+          <div class="vhc-meta-row">
+            <span>📍 {{ vendor.business_location }}</span>
+            <span>🏪 {{ vendor.business_category }}</span>
+            {% if avg_rating %}
+              <span>⭐ {{ "%.1f"|format(avg_rating) }} / 5 ({{ review_count }} reviews)</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% set links = vendor.social_links | from_json %}
+      {% if links %}
+      <div class="vhc-social">
+        {% if links.facebook %}<a href="{{ links.facebook }}" target="_blank" class="social-btn">📘 Facebook</a>{% endif %}
+        {% if links.instagram %}<a href="{{ links.instagram }}" target="_blank" class="social-btn">📸 Instagram</a>{% endif %}
+        {% if links.twitter %}<a href="{{ links.twitter }}" target="_blank" class="social-btn">🐦 X</a>{% endif %}
+        {% if links.tiktok %}<a href="{{ links.tiktok }}" target="_blank" class="social-btn">🎵 TikTok</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- PROMOTIONS -->
+    {% if promotions %}
+    <div class="section-header" style="margin-top:48px">
+      <h2 class="section-title">Active <span class="gold">Promotions</span></h2>
+    </div>
+    <div class="promos-grid">
+      {% for promo in promotions %}
+      <div class="promo-card">
+        <div class="promo-media">
+          {% if promo.flyer_path %}
+            <img src="/static/{{ promo.flyer_path }}" alt="Flyer" loading="lazy" />
+          {% else %}
+            {% set imgs = promo.product_images | from_json %}
+            {% if imgs %}
+              <img src="/static/{{ imgs[0] }}" alt="Product" loading="lazy" />
+            {% else %}
+              <div class="promo-no-img"><span>🏪</span></div>
+            {% endif %}
+          {% endif %}
+          <div class="promo-category-tag">{{ vendor.business_category }}</div>
+        </div>
+        <div class="promo-body">
+          <p class="promo-desc">{{ promo.business_description[:120] }}{% if promo.business_description|length > 120 %}…{% endif %}</p>
+          {% set prices = promo.prices | from_json %}
+          {% if prices and prices.text %}
+          <div class="promo-prices">
+            <strong class="gold">Prices:</strong>
+            <p>{{ prices.text[:80] }}{% if prices.text|length > 80 %}…{% endif %}</p>
+          </div>
+          {% endif %}
+          <div class="promo-contact-row">
+            <span>📞 {{ promo.contact_details[:60] }}</span>
+          </div>
+          <div class="promo-footer">
+            <span class="promo-date">{{ promo.created_at[:10] }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="margin-top:40px">
+      <div class="empty-icon">📦</div>
+      <h3>No active promotions</h3>
+      <p>This vendor has no live promotions at the moment.</p>
+    </div>
+    {% endif %}
+
+    <!-- REVIEWS -->
+    <div class="section-header" style="margin-top:60px">
+      <h2 class="section-title">Customer <span class="gold">Reviews</span></h2>
+    </div>
+
+    {% if reviews %}
+    <div class="dash-card full-width" style="margin-bottom:32px">
+      <div class="reviews-list">
+        {% for r in reviews %}
+        <div class="review-item">
+          <div class="review-top">
+            <strong>{{ r.reviewer_name }}</strong>
+            <div class="stars">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</div>
+            <span class="review-date">{{ r.created_at[:10] }}</span>
+          </div>
+          {% if r.comment %}<p class="review-comment">{{ r.comment }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <p class="muted-text" style="margin-bottom:32px">No reviews yet — be the first!</p>
+    {% endif %}
+
+    <!-- LEAVE A REVIEW -->
+    <div class="dash-card" style="max-width:600px;margin-bottom:60px">
+      <h3 class="card-title">⭐ Leave a Review</h3>
+      <form method="POST" action="{{ url_for('submit_review', vendor_id=vendor.id) }}"
+            class="upload-form" style="gap:14px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Your Name</label>
+            <input type="text" name="reviewer_name" class="form-control" placeholder="Anonymous" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rating <span class="required">*</span></label>
+            <select name="rating" class="form-control" required>
+              <option value="5">⭐⭐⭐⭐⭐ — Excellent</option>
+              <option value="4">⭐⭐⭐⭐ — Good</option>
+              <option value="3">⭐⭐⭐ — Average</option>
+              <option value="2">⭐⭐ — Poor</option>
+              <option value="1">⭐ — Terrible</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comment</label>
+          <textarea name="comment" class="form-control" rows="3"
+                    placeholder="Share your experience…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-gold">Submit Review</button>
+      </form>
+    </div>
+
+    <!-- REPORT -->
+    <div class="dash-card" style="max-width:600px;margin-bottom:60px">
+      <h3 class="card-title">🚨 Report This Vendor</h3>
+      <form method="POST" action="{{ url_for('report_vendor', vendor_id=vendor.id) }}"
+            class="upload-form" style="gap:14px">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Your Name</label>
+            <input type="text" name="reporter_name" class="form-control" placeholder="Optional" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your Phone</label>
+            <input type="tel" name="reporter_phone" class="form-control" placeholder="Optional" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason <span class="required">*</span></label>
+          <select name="reason" class="form-control" required>
+            <option value="">Select reason…</option>
+            <option>Scam or fraud</option>
+            <option>Fake products</option>
+            <option>Wrong contact info</option>
+            <option>Inappropriate content</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Details</label>
+          <textarea name="details" class="form-control" rows="2"
+                    placeholder="Additional details…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

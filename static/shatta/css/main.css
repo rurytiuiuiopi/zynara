@@ -1101,6 +1101,45 @@ img { max-width: 100%; display: block; }
 .empty-state p  { color: var(--text3); font-size: 0.875rem; margin-bottom: 20px; }
 
 /* ══════════════════════════════════════════════════════════
+   PUBLIC VENDOR PAGE
+   ══════════════════════════════════════════════════════════ */
+.vendor-hero-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+.vhc-left      { display: flex; gap: 20px; align-items: flex-start; }
+.vhc-avatar    { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--gold); flex-shrink: 0; }
+.vhc-avatar-placeholder { width: 90px; height: 90px; border-radius: 50%; background: var(--bg3); border: 3px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0; }
+.vhc-badges    { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.vhc-name      { font-size: 1.6rem; margin-bottom: 4px; }
+.vhc-owner     { color: var(--text3); font-size: 0.875rem; margin-bottom: 10px; }
+.vhc-meta-row  { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.875rem; color: var(--text2); }
+.vhc-social    { display: flex; flex-wrap: wrap; gap: 10px; }
+.social-btn    { padding: 8px 16px; border: 1px solid var(--border2); border-radius: var(--radius); font-size: 0.82rem; color: var(--text2); transition: all var(--transition); }
+.social-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+.promo-prices  { margin: 8px 0; font-size: 0.82rem; color: var(--text2); }
+.promo-contact-row { font-size: 0.8rem; color: var(--text3); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ══════════════════════════════════════════════════════════
+   ERROR PAGES
+   ══════════════════════════════════════════════════════════ */
+.error-section  { min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+.error-content  { text-align: center; max-width: 480px; }
+.error-code     { font-family: var(--font-head); font-size: 7rem; font-weight: 900; line-height: 1; margin-bottom: 16px; }
+.error-content h1 { font-size: 1.8rem; margin-bottom: 12px; }
+.error-content p  { color: var(--text2); margin-bottom: 32px; }
+.error-actions  { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ══════════════════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {

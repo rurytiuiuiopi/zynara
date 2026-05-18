@@ -1,0 +1,14 @@
+{% extends "shatta/base.html" %}
+{% block title %}Server Error — SHATTA TUESDAY MARKET{% endblock %}
+{% block content %}
+<section class="error-section">
+  <div class="error-content">
+    <div class="error-code" style="color:var(--red)">500</div>
+    <h1>Something Went Wrong</h1>
+    <p>An unexpected error occurred. Our team has been notified. Please try again shortly.</p>
+    <div class="error-actions">
+      <a href="{{ url_for('index') }}" class="btn btn-gold">🏠 Go Home</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
