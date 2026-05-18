@@ -1,0 +1,169 @@
+{% extends "shatta/base.html" %}
+{% block title %}Upload Promotion — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container upload-container">
+    <div class="section-header">
+      <h1>Upload <span class="gold">Promotion</span></h1>
+      <p>Submit your promotion for AI review and admin approval. Once approved, it goes live on Shatta Wale's platforms.</p>
+    </div>
+
+    <div class="upload-meta">
+      <div class="upload-meta-item">
+        <span class="um-label">Business:</span>
+        <strong>{{ vendor.business_name }}</strong>
+      </div>
+      <div class="upload-meta-item">
+        <span class="um-label">Plan:</span>
+        <strong class="gold">{{ sub.plan.title() }}</strong>
+      </div>
+    </div>
+
+    <!-- AI Info Banner -->
+    <div class="ai-info-banner">
+      <div class="ai-icon">🤖</div>
+      <div>
+        <strong>AI Moderation Active</strong>
+        <p>Your submission will be analysed for scam keywords, suspicious offers, image quality, and contact info before reaching the admin. Keep your content genuine and accurate.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('vendor_upload') }}" enctype="multipart/form-data" class="upload-form">
+
+      <!-- MEDIA UPLOADS -->
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">📸 Media</h3>
+
+        <div class="upload-media-grid">
+          <div class="form-group">
+            <label class="form-label">Business Flyer / Banner</label>
+            <div class="file-upload-area" onclick="document.getElementById('flyer').click()">
+              <div class="file-upload-icon">🖼</div>
+              <div class="file-upload-text">Upload your business flyer</div>
+              <div class="file-upload-hint">JPG, PNG — Max 10MB</div>
+              <div class="file-upload-preview" id="flyerPreview"></div>
+            </div>
+            <input type="file" name="flyer" id="flyer" accept=".jpg,.jpeg,.png,.gif,.webp"
+                   class="file-input-hidden" onchange="previewImg(this, 'flyerPreview')" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Promotional Video</label>
+            <div class="file-upload-area" onclick="document.getElementById('video').click()">
+              <div class="file-upload-icon">🎬</div>
+              <div class="file-upload-text">Upload a short video (optional)</div>
+              <div class="file-upload-hint">MP4, MOV — Max 50MB</div>
+              <div class="file-upload-preview" id="videoPreview"></div>
+            </div>
+            <input type="file" name="video" id="video" accept=".mp4,.mov,.avi,.webm"
+                   class="file-input-hidden" onchange="previewVideo(this, 'videoPreview')" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Product Images (up to 5)</label>
+          <div class="file-upload-area" onclick="document.getElementById('product_images').click()">
+            <div class="file-upload-icon">📦</div>
+            <div class="file-upload-text">Upload product photos</div>
+            <div class="file-upload-hint">JPG, PNG — Multiple allowed</div>
+            <div class="file-upload-preview" id="productPreview"></div>
+          </div>
+          <input type="file" name="product_images" id="product_images" accept=".jpg,.jpeg,.png,.webp"
+                 class="file-input-hidden" multiple onchange="previewMultiple(this, 'productPreview')" />
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="upload-section-block">
+        <h3 class="upload-section-title">📝 Business Content</h3>
+
+        <div class="form-group">
+          <label class="form-label">Business Description <span class="required">*</span></label>
+          <textarea name="business_description" class="form-control" rows="5"
+            placeholder="Describe your business, products, and services. Be clear, honest, and detailed…"
+            required maxlength="1000"></textarea>
+          <div class="char-counter"><span id="descCount">0</span>/1000</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Prices</label>
+          <textarea name="prices" class="form-control" rows="3"
+            placeholder="List your prices here, e.g.&#10;T-shirts: GHS 50&#10;Trousers: GHS 80&#10;Bundle deal: GHS 120"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Contact Details <span class="required">*</span></label>
+          <textarea name="contact_details" class="form-control" rows="3"
+            placeholder="Phone: 0244 123 456&#10;WhatsApp: 0244 123 456&#10;Location: Accra, Osu"
+            required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Preferred Promotion Date</label>
+          <input type="date" name="promotion_date" class="form-control" min="{{ '' }}" />
+          <span class="form-hint">Leave blank to let admin choose the best date.</span>
+        </div>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="upload-submit">
+        <div class="submit-checklist">
+          <h4>✅ Before you submit, confirm:</h4>
+          <label class="checkbox-label"><input type="checkbox" required /> All information is accurate and truthful</label>
+          <label class="checkbox-label"><input type="checkbox" required /> No scam, fake, or prohibited content</label>
+          <label class="checkbox-label"><input type="checkbox" required /> Contact details are correct and reachable</label>
+        </div>
+        <button type="submit" class="btn btn-gold btn-lg">
+          🚀 Submit for Review
+        </button>
+        <p class="form-hint">Your submission will be AI-reviewed then sent to the admin for final approval.</p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const desc = document.querySelector('[name="business_description"]');
+  if (desc) {
+    desc.addEventListener('input', () => {
+      document.getElementById('descCount').textContent = desc.value.length;
+    });
+  }
+
+  function previewImg(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.innerHTML = `<img src="${e.target.result}" style="max-height:120px;border-radius:8px;margin-top:8px;" />`;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function previewVideo(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+      preview.innerHTML = `<p style="color:#D4AF37;margin-top:8px;">🎬 ${input.files[0].name}</p>`;
+    }
+  }
+
+  function previewMultiple(input, previewId) {
+    const preview = document.getElementById(previewId);
+    preview.innerHTML = '';
+    Array.from(input.files).slice(0, 5).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'max-height:80px;border-radius:6px;margin:4px;display:inline-block;';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+{% endblock %}

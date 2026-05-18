@@ -1,0 +1,57 @@
+{% extends "shatta/base.html" %}
+{% block title %}Login — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">STM</div>
+        <h1>Welcome Back</h1>
+        <p>Login to your SHATTA TUESDAY MARKET account</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control" placeholder="your@email.com" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-with-toggle">
+            <input type="password" name="password" id="loginPassword" class="form-control" placeholder="Enter your password" required autocomplete="current-password" />
+            <button type="button" class="input-toggle-btn" onclick="togglePassword('loginPassword')">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-gold btn-block btn-lg">Login</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Don't have an account? <a href="{{ url_for('register') }}" class="gold">Register as a Vendor</a></p>
+      </div>
+
+      <div class="auth-divider"><span>OR</span></div>
+
+      <div class="admin-note">
+        <span class="badge badge-admin">ADMIN</span>
+        <span>Admin and Super Admin can log in with their credentials above.</span>
+      </div>
+    </div>
+
+    <div class="auth-side">
+      <div class="auth-side-content">
+        <h2>SHATTA TUESDAY MARKET</h2>
+        <p class="gold-italic">Promoting Ghanaian Businesses. Supporting The People.</p>
+        <ul class="auth-features">
+          <li>🇬🇭 Ghana's #1 Business Promotion Platform</li>
+          <li>✅ AI-Powered Trust Verification</li>
+          <li>📱 Reach Millions via Social Media</li>
+          <li>💛 Founded by Shatta Wale</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

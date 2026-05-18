@@ -1,0 +1,157 @@
+{% extends "shatta/base.html" %}
+{% block title %}Vendors — Admin — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Vendor <span class="gold">Management</span></h1>
+        <p class="admin-subtitle">Verify, badge, suspend, and manage all registered vendors</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill pill-active">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill">Reports</a>
+      </div>
+    </div>
+
+    <div class="vendor-count">{{ vendors | length }} vendor(s) registered</div>
+
+    {% if vendors %}
+    <div class="vendors-table-wrap">
+      {% for v in vendors %}
+      <div class="vendor-full-card {% if v.is_suspended %}vendor-suspended{% endif %}">
+        <div class="vfc-left">
+          <div class="vfc-id-preview">
+            {% if v.selfie_path %}
+              <img src="/static/{{ v.selfie_path }}" alt="Selfie" class="vfc-selfie" />
+            {% else %}
+              <div class="vfc-no-selfie">👤</div>
+            {% endif %}
+          </div>
+          <div class="vfc-info">
+            <h3>{{ v.business_name }}</h3>
+            <p class="vfc-name">{{ v.full_name }}</p>
+            <p class="vfc-meta">📧 {{ v.email }}</p>
+            <p class="vfc-meta">📞 {{ v.phone }}</p>
+            {% if v.momo_number %}<p class="vfc-meta">💰 MoMo: {{ v.momo_number }}</p>{% endif %}
+            <p class="vfc-meta">📍 {{ v.business_location }}</p>
+            <p class="vfc-meta">🏪 {{ v.business_category }}</p>
+            <p class="vfc-meta">⭐ {{ '%.1f' % v.avg_rating if v.avg_rating else '—' }} avg rating</p>
+            <p class="vfc-meta">✅ {{ v.approved_promos }} approved promotions</p>
+            <p class="vfc-meta">📅 Joined {{ v.created_at[:10] }}</p>
+          </div>
+        </div>
+
+        <div class="vfc-right">
+          <!-- STATUS BADGES -->
+          <div class="vfc-badges">
+            {% if v.is_suspended %}
+              <span class="badge badge-suspended">🚫 Suspended</span>
+            {% endif %}
+            {% if v.verified_status == 'verified' %}
+              <span class="badge badge-verified">✓ ID Verified</span>
+            {% else %}
+              <span class="badge badge-unverified">⚠ Unverified</span>
+            {% endif %}
+            {% if v.trust_badge == 'verified' %}
+              <span class="badge badge-verified">✓ Verified Badge</span>
+            {% elif v.trust_badge == 'trusted' %}
+              <span class="badge badge-trusted">⭐ Trusted Badge</span>
+            {% endif %}
+            {% if v.active_sub %}
+              <span class="badge badge-active-sub">💳 Subscribed</span>
+            {% else %}
+              <span class="badge badge-no-sub">💳 No Sub</span>
+            {% endif %}
+          </div>
+
+          <!-- ID CARD PREVIEW -->
+          {% if v.id_card_path %}
+          <a href="/static/{{ v.id_card_path }}" target="_blank" class="btn btn-sm btn-gold-outline mb-1">🪪 View ID Card</a>
+          {% endif %}
+
+          <!-- VERIFY -->
+          <div class="vfc-action-group">
+            <h4>Identity Verification</h4>
+            {% if v.verified_status != 'verified' %}
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='verify') }}" style="display:inline">
+              <button class="btn btn-sm btn-approve">✓ Mark Verified</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='unverify') }}" style="display:inline">
+              <button class="btn btn-sm btn-outline">✗ Remove Verification</button>
+            </form>
+            {% endif %}
+          </div>
+
+          <!-- BADGES -->
+          <div class="vfc-action-group">
+            <h4>Trust Badge</h4>
+            <div class="badge-btn-row">
+              <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='verified_badge') }}" style="display:inline">
+                <button class="btn btn-xs btn-approve">✓ Verified</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='trusted_badge') }}" style="display:inline">
+                <button class="btn btn-xs btn-gold-outline">⭐ Trusted</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='no_badge') }}" style="display:inline">
+                <button class="btn btn-xs btn-outline">✗ Remove</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- SUSPEND / REINSTATE -->
+          <div class="vfc-action-group">
+            <h4>Account Status</h4>
+            {% if not v.is_suspended %}
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='suspend') }}">
+              <input type="text" name="reason" class="form-control form-control-sm mb-1" placeholder="Suspension reason…" required />
+              <button class="btn btn-sm btn-reject">🚫 Suspend Vendor</button>
+            </form>
+            {% else %}
+            <p class="suspension-reason">Reason: {{ v.suspension_reason }}</p>
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='unsuspend') }}">
+              <button class="btn btn-sm btn-approve">✓ Reinstate Vendor</button>
+            </form>
+            {% endif %}
+          </div>
+
+          <!-- BLACKLIST -->
+          <div class="vfc-action-group">
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='blacklist') }}"
+                  onsubmit="return confirm('Add this vendor to the fraud blacklist and suspend them?')">
+              <input type="text" name="reason" class="form-control form-control-sm mb-1" placeholder="Blacklist reason…" required />
+              <button class="btn btn-sm btn-reject">🔴 Add to Blacklist</button>
+            </form>
+          </div>
+
+          <!-- ADMIN NOTE -->
+          <div class="vfc-action-group">
+            <h4>Admin Notes</h4>
+            <form method="POST" action="{{ url_for('admin_vendor_action', vendor_id=v.id, action='note') }}">
+              <textarea name="note" class="form-control form-control-sm mb-1" rows="2"
+                        placeholder="Internal notes about this vendor…">{{ v.admin_notes or '' }}</textarea>
+              <button class="btn btn-xs btn-gold-outline">💾 Save Note</button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <h3>No vendors registered yet</h3>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "shatta/base.html" %}
+{% block title %}Blacklist — Admin — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Fraud <span class="gold">Blacklist</span></h1>
+        <p class="admin-subtitle">Manage banned phone numbers, MoMo numbers, and businesses</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill pill-active">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill">Reports</a>
+      </div>
+    </div>
+
+    <!-- ADD FORM -->
+    <div class="admin-card mb-3">
+      <h3 class="card-title">➕ Add to Blacklist</h3>
+      <form method="POST" action="{{ url_for('admin_blacklist') }}" class="blacklist-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" name="phone" class="form-control" placeholder="0244 123 456" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MoMo Number</label>
+            <input type="tel" name="momo_number" class="form-control" placeholder="0244 123 456" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="bad@actor.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Name</label>
+            <input type="text" name="business_name" class="form-control" placeholder="Business name to block" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason <span class="required">*</span></label>
+          <input type="text" name="reason" class="form-control" placeholder="e.g. Confirmed fraud, fake products, scam reports" required />
+        </div>
+        <button type="submit" class="btn btn-reject">🔴 Add to Blacklist</button>
+      </form>
+    </div>
+
+    <!-- BLACKLIST TABLE -->
+    {% if entries %}
+    <div class="admin-card">
+      <h3 class="card-title">🚫 Blacklisted Entries ({{ entries | length }})</h3>
+      <div class="blacklist-table">
+        <div class="bl-head">
+          <span>Phone</span>
+          <span>MoMo</span>
+          <span>Email</span>
+          <span>Business</span>
+          <span>Reason</span>
+          <span>Date</span>
+          <span>Action</span>
+        </div>
+        {% for e in entries %}
+        <div class="bl-row">
+          <span>{{ e.phone or '—' }}</span>
+          <span>{{ e.momo_number or '—' }}</span>
+          <span>{{ e.email or '—' }}</span>
+          <span>{{ e.business_name or '—' }}</span>
+          <span class="bl-reason">{{ e.reason }}</span>
+          <span>{{ e.created_at[:10] }}</span>
+          <span>
+            <form method="POST" action="{{ url_for('remove_blacklist', entry_id=e.id) }}"
+                  onsubmit="return confirm('Remove this entry from the blacklist?')">
+              <button class="btn btn-xs btn-outline">Remove</button>
+            </form>
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h3>Blacklist is empty</h3>
+      <p>No fraud entries recorded yet.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

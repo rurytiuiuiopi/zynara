@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}SHATTA TUESDAY MARKET{% endblock %}</title>
+  <meta name="description" content="Promoting Ghanaian Businesses. Supporting The People." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='shatta/css/main.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="{{ url_for('index') }}" class="nav-brand">
+      <span class="brand-shatta">SHATTA</span>
+      <span class="brand-tuesday"> TUESDAY </span>
+      <span class="brand-market">MARKET</span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="nav-links" id="navLinks">
+      <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+      {% if session.get('user_id') %}
+        {% set role = session.get('role', 'vendor') %}
+        {% if role in ['admin', 'super_admin'] %}
+          <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin</a>
+          <a href="{{ url_for('admin_submissions') }}" class="nav-link">Submissions</a>
+          <a href="{{ url_for('admin_vendors') }}" class="nav-link">Vendors</a>
+        {% else %}
+          <a href="{{ url_for('vendor_dashboard') }}" class="nav-link">Dashboard</a>
+          <a href="{{ url_for('vendor_upload') }}" class="nav-link">Upload</a>
+          <a href="{{ url_for('vendor_subscription') }}" class="nav-link">Subscription</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-gold btn-sm">Register Vendor</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            {{ message }}
+            <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="footer-logo">SHATTA TUESDAY MARKET</div>
+      <p class="footer-slogan">Promoting Ghanaian Businesses. Supporting The People.</p>
+      <p class="footer-founder">Founded by <strong>Shatta Wale</strong></p>
+    </div>
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('register') }}">Register as Vendor</a>
+      <a href="{{ url_for('login') }}">Login</a>
+    </div>
+    <div class="footer-contact">
+      <h4>Contact</h4>
+      <p>Email: info@shattamarket.com</p>
+      <p>WhatsApp: +233 XX XXX XXXX</p>
+      <p>Ghana</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {{ 2024 }} SHATTA TUESDAY MARKET. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='shatta/js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

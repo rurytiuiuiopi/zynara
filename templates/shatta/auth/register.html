@@ -1,0 +1,250 @@
+{% extends "shatta/base.html" %}
+{% block title %}Register Your Business — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="register-section">
+  <div class="container">
+    <div class="register-header">
+      <h1>Register Your <span class="gold">Business</span></h1>
+      <p>Join SHATTA TUESDAY MARKET and get your business promoted to millions of fans across Ghana and beyond.</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="reg-progress">
+      <div class="reg-step active" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Account</div>
+      </div>
+      <div class="reg-step-line"></div>
+      <div class="reg-step" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Business</div>
+      </div>
+      <div class="reg-step-line"></div>
+      <div class="reg-step" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Verification</div>
+      </div>
+      <div class="reg-step-line"></div>
+      <div class="reg-step" data-step="4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Payment Info</div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('register') }}" enctype="multipart/form-data" class="register-form" id="registerForm">
+
+      <!-- STEP 1: Account Info -->
+      <div class="reg-panel active" id="step1">
+        <h2 class="reg-panel-title">Account Information</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input type="text" name="full_name" class="form-control" placeholder="e.g. Kofi Mensah" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required">*</span></label>
+            <input type="email" name="email" class="form-control" placeholder="kofi@example.com" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Password <span class="required">*</span></label>
+            <div class="input-with-toggle">
+              <input type="password" name="password" id="regPassword" class="form-control" placeholder="Create a strong password" required minlength="6" />
+              <button type="button" class="input-toggle-btn" onclick="togglePassword('regPassword')">👁</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" name="phone" class="form-control" placeholder="0244123456" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Number</label>
+          <input type="tel" name="whatsapp" class="form-control" placeholder="0244123456 (if different from phone)" />
+        </div>
+        <div class="reg-nav">
+          <div></div>
+          <button type="button" class="btn btn-gold" onclick="goStep(2)">Next: Business Info →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Business Info -->
+      <div class="reg-panel" id="step2">
+        <h2 class="reg-panel-title">Business Information</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Business Name <span class="required">*</span></label>
+            <input type="text" name="business_name" class="form-control" placeholder="e.g. Kofi's Fashion Store" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Category <span class="required">*</span></label>
+            <select name="business_category" class="form-control" required>
+              <option value="">Select category…</option>
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Business Location <span class="required">*</span></label>
+          <input type="text" name="business_location" class="form-control" placeholder="e.g. Accra, Kumasi, Takoradi…" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Social Media Links</label>
+          <div class="social-links-grid">
+            <div class="social-input">
+              <span class="social-icon">📘</span>
+              <input type="url" name="facebook" class="form-control" placeholder="Facebook page URL" />
+            </div>
+            <div class="social-input">
+              <span class="social-icon">📸</span>
+              <input type="url" name="instagram" class="form-control" placeholder="Instagram URL" />
+            </div>
+            <div class="social-input">
+              <span class="social-icon">🐦</span>
+              <input type="url" name="twitter" class="form-control" placeholder="X (Twitter) URL" />
+            </div>
+            <div class="social-input">
+              <span class="social-icon">🎵</span>
+              <input type="url" name="tiktok" class="form-control" placeholder="TikTok URL" />
+            </div>
+          </div>
+        </div>
+        <div class="reg-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(1)">← Back</button>
+          <button type="button" class="btn btn-gold" onclick="goStep(3)">Next: Verification →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: ID Verification -->
+      <div class="reg-panel" id="step3">
+        <h2 class="reg-panel-title">Identity Verification</h2>
+        <div class="verification-info">
+          <div class="verify-icon">🛡️</div>
+          <p>We verify all vendors to protect buyers and maintain trust on the platform. Your information is kept secure and private.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ghana Card / National ID Upload <span class="required">*</span></label>
+          <div class="file-upload-area" id="idCardArea" onclick="document.getElementById('id_card').click()">
+            <div class="file-upload-icon">🪪</div>
+            <div class="file-upload-text">Click to upload your Ghana Card or National ID</div>
+            <div class="file-upload-hint">JPG, PNG, or PDF — Max 10MB</div>
+            <div class="file-upload-preview" id="idCardPreview"></div>
+          </div>
+          <input type="file" name="id_card" id="id_card" accept=".jpg,.jpeg,.png,.pdf" class="file-input-hidden" onchange="previewFile(this, 'idCardPreview', 'idCardArea')" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Selfie Verification <span class="required">*</span></label>
+          <div class="file-upload-area" id="selfieArea" onclick="document.getElementById('selfie').click()">
+            <div class="file-upload-icon">🤳</div>
+            <div class="file-upload-text">Take or upload a clear selfie photo of yourself</div>
+            <div class="file-upload-hint">JPG or PNG — Hold your ID card visible in the photo</div>
+            <div class="file-upload-preview" id="selfiePreview"></div>
+          </div>
+          <input type="file" name="selfie" id="selfie" accept=".jpg,.jpeg,.png" class="file-input-hidden" onchange="previewFile(this, 'selfiePreview', 'selfieArea')" />
+        </div>
+
+        <div class="reg-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(2)">← Back</button>
+          <button type="button" class="btn btn-gold" onclick="goStep(4)">Next: Payment Info →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Payment Details -->
+      <div class="reg-panel" id="step4">
+        <h2 class="reg-panel-title">Payment Details</h2>
+        <p class="step-hint">This is where subscription payments will be sent. Required for account setup.</p>
+
+        <div class="payment-tabs">
+          <button type="button" class="payment-tab active" onclick="switchPayTab('momo', this)">📱 MoMo</button>
+          <button type="button" class="payment-tab" onclick="switchPayTab('bank', this)">🏦 Bank</button>
+        </div>
+
+        <div class="pay-panel active" id="payMomo">
+          <div class="form-group">
+            <label class="form-label">MoMo Number</label>
+            <input type="tel" name="momo_number" class="form-control" placeholder="0244123456" />
+            <span class="form-hint">MTN, Vodafone, or AirtelTigo MoMo number</span>
+          </div>
+        </div>
+
+        <div class="pay-panel" id="payBank">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Bank Name</label>
+              <input type="text" name="bank_name" class="form-control" placeholder="e.g. GCB Bank, Ecobank" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Account Number</label>
+              <input type="text" name="bank_account" class="form-control" placeholder="Account number" />
+            </div>
+          </div>
+        </div>
+
+        <div class="terms-check">
+          <label class="checkbox-label">
+            <input type="checkbox" required />
+            <span>I agree to the <a href="#" class="gold">Terms of Service</a> and confirm that all information provided is accurate and truthful.</span>
+          </label>
+        </div>
+
+        <div class="reg-nav">
+          <button type="button" class="btn btn-outline" onclick="goStep(3)">← Back</button>
+          <button type="submit" class="btn btn-gold btn-lg">
+            🚀 Complete Registration
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentStep = 1;
+
+  function goStep(n) {
+    document.querySelectorAll('.reg-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.reg-step').forEach(s => {
+      const sn = parseInt(s.dataset.step);
+      s.classList.toggle('active', sn === n);
+      s.classList.toggle('done', sn < n);
+    });
+    document.getElementById('step' + n).classList.add('active');
+    currentStep = n;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function switchPayTab(tab, btn) {
+    document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('pay' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function previewFile(input, previewId, areaId) {
+    const preview = document.getElementById(previewId);
+    const area = document.getElementById(areaId);
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.innerHTML = `<img src="${e.target.result}" style="max-height:120px;border-radius:8px;margin-top:8px;" />`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = `<p style="color:#D4AF37;margin-top:8px;">📄 ${file.name}</p>`;
+      }
+      area.classList.add('has-file');
+    }
+  }
+</script>
+{% endblock %}

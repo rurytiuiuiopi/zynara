@@ -1,0 +1,73 @@
+{% extends "shatta/base.html" %}
+{% block title %}Customer Reports — Admin — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Customer <span class="gold">Reports</span></h1>
+        <p class="admin-subtitle">Investigate and resolve vendor reports from customers</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill pill-active">Reports</a>
+      </div>
+    </div>
+
+    {% if reports %}
+    <div class="reports-list">
+      {% for r in reports %}
+      <div class="report-card {% if r.status == 'resolved' %}report-resolved{% endif %}">
+        <div class="report-top">
+          <div>
+            <h3>{{ r.business_name }} <span class="muted-text">({{ r.full_name }})</span></h3>
+            <div class="report-meta">
+              <span>Reporter: <strong>{{ r.reporter_name or 'Anonymous' }}</strong></span>
+              {% if r.reporter_phone %}<span>📞 {{ r.reporter_phone }}</span>{% endif %}
+              <span>📅 {{ r.created_at[:10] }}</span>
+            </div>
+          </div>
+          <div class="report-status-badge status-{{ r.status }}">
+            {{ '✅ Resolved' if r.status == 'resolved' else '🔴 Pending' }}
+          </div>
+        </div>
+
+        <div class="report-body">
+          <div class="report-reason">
+            <strong>Reason:</strong> {{ r.report_reason }}
+          </div>
+          {% if r.details %}
+          <div class="report-details">
+            <strong>Details:</strong> {{ r.details }}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if r.status == 'pending' %}
+        <div class="report-actions">
+          <form method="POST" action="{{ url_for('resolve_report', report_id=r.id) }}" style="display:inline">
+            <button class="btn btn-sm btn-approve">✅ Mark Resolved</button>
+          </form>
+          <a href="{{ url_for('admin_vendors') }}" class="btn btn-sm btn-gold-outline">👤 View Vendor</a>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h3>No customer reports</h3>
+      <p>All clear — no reports submitted by customers.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

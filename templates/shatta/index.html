@@ -1,0 +1,283 @@
+{% extends "shatta/base.html" %}
+{% block title %}SHATTA TUESDAY MARKET — Promoting Ghanaian Businesses{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">🇬🇭 Official Business Promotion Platform</div>
+    <h1 class="hero-title">
+      SHATTA<br><span class="gold">TUESDAY</span><br>MARKET
+    </h1>
+    <p class="hero-slogan">Promoting Ghanaian Businesses. Supporting The People.</p>
+    <p class="hero-sub">Founded by <strong class="gold">Shatta Wale</strong> — empowering entrepreneurs, fans, and small businesses across Ghana.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Register Your Business</a>
+      <a href="#promotions" class="btn btn-outline btn-lg">Browse Promotions</a>
+    </div>
+  </div>
+  <div class="hero-scroll-indicator">
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-bar">
+  <div class="stats-container">
+    <div class="stat-item">
+      <span class="stat-number">{{ stats.vendors }}</span>
+      <span class="stat-label">Registered Vendors</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">{{ stats.promotions }}</span>
+      <span class="stat-label">Live Promotions</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">GHS</span>
+      <span class="stat-label">Payments via MoMo</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">3</span>
+      <span class="stat-label">Subscription Plans</span>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE PROMOTIONS -->
+<section class="section" id="promotions">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Live <span class="gold">Promotions</span></h2>
+      <p class="section-sub">Verified businesses approved by Shatta Wale's team</p>
+    </div>
+
+    {% if promotions %}
+    <div class="promos-grid">
+      {% for promo in promotions %}
+      <div class="promo-card">
+        <div class="promo-media">
+          {% if promo.flyer_path %}
+            <img src="/static/{{ promo.flyer_path }}" alt="{{ promo.business_name }} flyer" loading="lazy" />
+          {% elif promo.product_images %}
+            {% set imgs = promo.product_images | from_json %}
+            {% if imgs %}
+              <img src="/static/{{ imgs[0] }}" alt="{{ promo.business_name }}" loading="lazy" />
+            {% else %}
+              <div class="promo-no-img"><span>📦</span></div>
+            {% endif %}
+          {% else %}
+            <div class="promo-no-img"><span>🏪</span></div>
+          {% endif %}
+          <div class="promo-category-tag">{{ promo.business_category }}</div>
+          {% if promo.trust_badge == 'verified' %}
+            <div class="badge badge-verified promo-badge">✓ Verified</div>
+          {% elif promo.trust_badge == 'trusted' %}
+            <div class="badge badge-trusted promo-badge">⭐ Trusted</div>
+          {% endif %}
+        </div>
+        <div class="promo-body">
+          <h3 class="promo-business">{{ promo.business_name }}</h3>
+          <p class="promo-vendor">by {{ promo.full_name }}</p>
+          <p class="promo-desc">{{ promo.business_description[:100] }}{% if promo.business_description|length > 100 %}…{% endif %}</p>
+          <div class="promo-footer">
+            <span class="promo-date">{{ promo.created_at[:10] }}</span>
+            <button class="btn btn-sm btn-gold-outline"
+              onclick="openPromoModal({{ promo.id }}, '{{ promo.business_name | e }}', '{{ promo.full_name | e }}', '{{ promo.business_description | replace("'","\'") | replace('"','\\"') }}', '{{ promo.contact_details | e }}')">
+              View Details
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🏪</div>
+      <h3>No promotions yet</h3>
+      <p>Be the first to register and promote your business!</p>
+      <a href="{{ url_for('register') }}" class="btn btn-gold">Register Now</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-dark" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">How It <span class="gold">Works</span></h2>
+      <p class="section-sub">Simple steps to get your business promoted</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="step-icon">📋</div>
+        <h3>Register</h3>
+        <p>Create your vendor profile with your business details, Ghana Card, and selfie verification.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="step-icon">💳</div>
+        <h3>Subscribe</h3>
+        <p>Choose a plan and pay your yearly subscription via MoMo or bank transfer.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="step-icon">📤</div>
+        <h3>Upload</h3>
+        <p>Upload your flyers, product images, videos, and business description.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <div class="step-icon">🛡️</div>
+        <h3>AI Review</h3>
+        <p>Our AI moderation checks your content for safety and quality before it reaches the admin.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">05</div>
+        <div class="step-icon">✅</div>
+        <h3>Go Live</h3>
+        <p>Admin approves and your promotion goes live across Shatta Wale's social media platforms.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">06</div>
+        <div class="step-icon">🚀</div>
+        <h3>Grow</h3>
+        <p>Reach millions of fans and customers. Build your brand. Reduce unemployment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUBSCRIPTION PLANS -->
+<section class="section" id="plans">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Subscription <span class="gold">Plans</span></h2>
+      <p class="section-sub">Yearly plans — pay once, promote all year</p>
+    </div>
+    <div class="plans-grid">
+      {% for key, plan in plans.items() %}
+      <div class="plan-card {% if key == 'standard' %}plan-featured{% endif %}">
+        {% if key == 'standard' %}<div class="plan-badge">Most Popular</div>{% endif %}
+        <div class="plan-name">{{ plan.name }}</div>
+        <div class="plan-price">
+          <span class="plan-currency">GHS</span>
+          <span class="plan-amount">{{ plan.amount }}</span>
+          <span class="plan-period">/year</span>
+        </div>
+        <div class="plan-desc">{{ plan.description }}</div>
+        <ul class="plan-features">
+          <li>✓ Vendor Dashboard</li>
+          <li>✓ Flyers &amp; Images</li>
+          {% if key in ['standard', 'premium'] %}<li>✓ Video Uploads</li>{% else %}<li class="disabled">✗ Video Uploads</li>{% endif %}
+          {% if key == 'premium' %}<li>✓ Priority Review</li>{% else %}<li class="disabled">✗ Priority Review</li>{% endif %}
+          <li>✓ {{ plan.description }}</li>
+          <li>✓ Verified Badge Eligible</li>
+        </ul>
+        <a href="{{ url_for('register') }}" class="btn {% if key == 'standard' %}btn-gold{% else %}btn-outline{% endif %} btn-block">Get Started</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER SECTION -->
+<section class="section section-founder">
+  <div class="container">
+    <div class="founder-content">
+      <div class="founder-text">
+        <div class="founder-label">Founded By</div>
+        <h2 class="founder-name">Shatta <span class="gold">Wale</span></h2>
+        <p class="founder-quote">"Ghana has talented entrepreneurs everywhere. This platform gives them the visibility they deserve. Every business registered here is a step toward reducing unemployment in our nation."</p>
+        <div class="founder-mission">
+          <div class="mission-item"><span class="gold">🎯</span> Empower Ghanaian Entrepreneurs</div>
+          <div class="mission-item"><span class="gold">🤝</span> Support Local Businesses</div>
+          <div class="mission-item"><span class="gold">💼</span> Reduce Unemployment</div>
+          <div class="mission-item"><span class="gold">🇬🇭</span> Promote Made in Ghana</div>
+        </div>
+      </div>
+      <div class="founder-visual">
+        <div class="founder-card-gold">
+          <div class="fc-top">SHATTA TUESDAY MARKET</div>
+          <div class="fc-seal">SW</div>
+          <div class="fc-bottom">Official Business Promotion Platform<br>Est. Ghana 🇬🇭</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container cta-container">
+    <h2>Ready to Promote Your Business?</h2>
+    <p>Join hundreds of Ghanaian vendors already on the platform.</p>
+    <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Register Your Business Free</a>
+  </div>
+</section>
+
+<!-- PROMO MODAL -->
+<div class="modal-overlay" id="promoModal" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h3 class="modal-title" id="modalBusiness"></h3>
+    <p class="modal-vendor" id="modalVendor"></p>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-contact">
+      <strong>Contact:</strong>
+      <p id="modalContact"></p>
+    </div>
+    <div class="modal-actions">
+      <h4>Report This Vendor</h4>
+      <form method="POST" id="reportForm" action="">
+        <select name="reason" class="form-control" required>
+          <option value="">Select reason…</option>
+          <option>Scam or fraud</option>
+          <option>Fake products</option>
+          <option>Wrong contact info</option>
+          <option>Inappropriate content</option>
+          <option>Other</option>
+        </select>
+        <textarea name="details" class="form-control mt-1" placeholder="Additional details (optional)" rows="2"></textarea>
+        <input name="reporter_name" class="form-control mt-1" placeholder="Your name (optional)" />
+        <button type="submit" class="btn btn-danger btn-sm mt-1">Submit Report</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const promoData = {};
+  {% for promo in promotions %}
+  promoData[{{ promo.id }}] = {
+    business: {{ promo.business_name | tojson }},
+    vendor: {{ promo.full_name | tojson }},
+    desc: {{ promo.business_description | tojson }},
+    contact: {{ promo.contact_details | tojson }},
+  };
+  {% endfor %}
+
+  function openPromoModal(id, business, vendor, desc, contact) {
+    const d = promoData[id] || { business, vendor, desc, contact };
+    document.getElementById('modalBusiness').textContent = d.business;
+    document.getElementById('modalVendor').textContent = 'by ' + d.vendor;
+    document.getElementById('modalDesc').textContent = d.desc;
+    document.getElementById('modalContact').textContent = d.contact;
+    document.getElementById('reportForm').action = '/report/' + id;
+    document.getElementById('promoModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('promoModal').classList.remove('active');
+  }
+</script>
+{% endblock %}

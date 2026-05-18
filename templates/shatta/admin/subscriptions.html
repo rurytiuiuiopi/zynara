@@ -1,0 +1,72 @@
+{% extends "shatta/base.html" %}
+{% block title %}Subscriptions — Admin — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Subscription <span class="gold">Management</span></h1>
+        <p class="admin-subtitle">Review and approve vendor subscription payments</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill pill-active">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill">Reports</a>
+      </div>
+    </div>
+
+    {% if subscriptions %}
+    <div class="subs-list-admin">
+      {% for s in subscriptions %}
+      <div class="sub-admin-card {% if s.status == 'pending' %}sub-card-pending{% elif s.status == 'approved' %}sub-card-approved{% else %}sub-card-rejected{% endif %}">
+        <div class="sac-left">
+          <div class="sac-plan plan-{{ s.plan }}">{{ s.plan.title() }}</div>
+          <div class="sac-amount">GHS {{ s.amount }}</div>
+          <div class="sac-period">/year</div>
+        </div>
+        <div class="sac-middle">
+          <h3>{{ s.business_name }}</h3>
+          <p class="sac-vendor">{{ s.full_name }} — {{ s.phone }}</p>
+          <div class="sac-meta">
+            <span>Method: <strong>{{ s.payment_method or '—' }}</strong></span>
+            <span>Ref: <strong>{{ s.payment_reference or '—' }}</strong></span>
+            <span>Submitted: <strong>{{ s.created_at[:10] }}</strong></span>
+            {% if s.expires_at %}<span>Expires: <strong>{{ s.expires_at[:10] }}</strong></span>{% endif %}
+          </div>
+          {% if s.payment_proof_path %}
+          <a href="/static/{{ s.payment_proof_path }}" target="_blank" class="btn btn-sm btn-gold-outline mt-1">📷 View Payment Proof</a>
+          {% else %}
+          <span class="muted-text">No payment proof uploaded</span>
+          {% endif %}
+        </div>
+        <div class="sac-right">
+          <div class="status-pill status-{{ s.status }}">{{ s.status.title() }}</div>
+          {% if s.status == 'pending' %}
+          <div class="sac-actions">
+            <form method="POST" action="{{ url_for('admin_review_subscription', sub_id=s.id, action='approve') }}">
+              <button class="btn btn-approve btn-block mb-1">✅ APPROVE</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_review_subscription', sub_id=s.id, action='reject') }}">
+              <button class="btn btn-reject btn-block">❌ REJECT</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">💳</div>
+      <h3>No subscription requests</h3>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

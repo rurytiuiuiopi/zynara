@@ -1,0 +1,162 @@
+{% extends "shatta/base.html" %}
+{% block title %}Admin Dashboard — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Admin <span class="gold">Dashboard</span></h1>
+        <p class="admin-subtitle">SHATTA TUESDAY MARKET — Control Centre</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill pill-active">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill">Reports</a>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="admin-stats">
+      <div class="admin-stat-card">
+        <div class="asc-icon">👥</div>
+        <div class="asc-value">{{ stats.total_vendors }}</div>
+        <div class="asc-label">Total Vendors</div>
+      </div>
+      <div class="admin-stat-card asc-alert">
+        <div class="asc-icon">⏳</div>
+        <div class="asc-value">{{ stats.pending_subs }}</div>
+        <div class="asc-label">Pending Subscriptions</div>
+        {% if stats.pending_subs > 0 %}
+          <a href="{{ url_for('admin_subscriptions') }}" class="asc-action">Review →</a>
+        {% endif %}
+      </div>
+      <div class="admin-stat-card asc-alert">
+        <div class="asc-icon">📋</div>
+        <div class="asc-value">{{ stats.pending_promos }}</div>
+        <div class="asc-label">Pending Promotions</div>
+        {% if stats.pending_promos > 0 %}
+          <a href="{{ url_for('admin_submissions') }}" class="asc-action">Review →</a>
+        {% endif %}
+      </div>
+      <div class="admin-stat-card">
+        <div class="asc-icon">✅</div>
+        <div class="asc-value">{{ stats.approved_promos }}</div>
+        <div class="asc-label">Approved Promotions</div>
+      </div>
+      <div class="admin-stat-card {% if stats.total_reports > 0 %}asc-alert{% endif %}">
+        <div class="asc-icon">🚨</div>
+        <div class="asc-value">{{ stats.total_reports }}</div>
+        <div class="asc-label">Open Reports</div>
+        {% if stats.total_reports > 0 %}
+          <a href="{{ url_for('admin_reports') }}" class="asc-action">View →</a>
+        {% endif %}
+      </div>
+      <div class="admin-stat-card">
+        <div class="asc-icon">🚫</div>
+        <div class="asc-value">{{ stats.blacklisted }}</div>
+        <div class="asc-label">Blacklisted</div>
+      </div>
+    </div>
+
+    <div class="admin-two-col">
+      <!-- RECENT SUBMISSIONS -->
+      <div class="admin-card">
+        <div class="card-header-row">
+          <h3 class="card-title">📋 Pending Submissions</h3>
+          <a href="{{ url_for('admin_submissions') }}" class="btn btn-sm btn-gold-outline">View All</a>
+        </div>
+
+        {% if recent_submissions %}
+        <div class="submission-list">
+          {% for s in recent_submissions %}
+          <div class="submission-item">
+            <div class="si-top">
+              <div>
+                <strong>{{ s.business_name }}</strong>
+                <span class="si-vendor">by {{ s.full_name }}</span>
+              </div>
+              <div class="si-risk-badge risk-{{ 'low' if s.ai_risk_score < 30 else ('med' if s.ai_risk_score < 60 else 'high') }}">
+                {{ s.ai_risk_score }}% Risk
+              </div>
+            </div>
+            <div class="si-meta">
+              <span class="badge badge-sm {% if s.verified_status == 'verified' %}badge-verified{% else %}badge-unverified{% endif %}">
+                {{ '✓ Verified' if s.verified_status == 'verified' else '⚠ Unverified' }}
+              </span>
+              <span class="badge badge-sm badge-cat">{{ s.business_category }}</span>
+              <span class="si-date">{{ s.created_at[:10] }}</span>
+            </div>
+            <div class="si-actions">
+              <form method="POST" action="{{ url_for('admin_review_submission', promo_id=s.id, action='approve') }}" style="display:inline">
+                <button class="btn btn-xs btn-approve">✅ Approve</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_review_submission', promo_id=s.id, action='hold') }}" style="display:inline">
+                <button class="btn btn-xs btn-hold">⏸ Hold</button>
+              </form>
+              <a href="{{ url_for('admin_submissions') }}" class="btn btn-xs btn-outline">Details</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-sm">
+          <p class="gold">🎉 No pending submissions — all clear!</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- RECENT SUBSCRIPTIONS -->
+      <div class="admin-card">
+        <div class="card-header-row">
+          <h3 class="card-title">💳 Pending Subscriptions</h3>
+          <a href="{{ url_for('admin_subscriptions') }}" class="btn btn-sm btn-gold-outline">View All</a>
+        </div>
+
+        {% if recent_subs %}
+        <div class="sub-list">
+          {% for s in recent_subs %}
+          <div class="sub-item">
+            <div class="sub-item-top">
+              <div>
+                <strong>{{ s.business_name }}</strong>
+                <span class="si-vendor">{{ s.full_name }}</span>
+              </div>
+              <div class="sub-plan-badge plan-{{ s.plan }}">{{ s.plan.title() }}</div>
+            </div>
+            <div class="sub-item-meta">
+              <span>GHS {{ s.amount }}</span>
+              <span>{{ s.payment_method or '—' }}</span>
+              <span>{{ s.created_at[:10] }}</span>
+            </div>
+            {% if s.payment_proof_path %}
+            <div class="sub-item-proof">
+              <a href="/static/{{ s.payment_proof_path }}" target="_blank" class="btn btn-xs btn-gold-outline">📷 View Proof</a>
+            </div>
+            {% endif %}
+            <div class="si-actions">
+              <form method="POST" action="{{ url_for('admin_review_subscription', sub_id=s.id, action='approve') }}" style="display:inline">
+                <button class="btn btn-xs btn-approve">✅ Approve</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_review_subscription', sub_id=s.id, action='reject') }}" style="display:inline">
+                <button class="btn btn-xs btn-reject">❌ Reject</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-sm">
+          <p class="gold">✅ No pending subscription requests.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

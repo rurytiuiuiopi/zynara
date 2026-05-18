@@ -1,0 +1,232 @@
+{% extends "shatta/base.html" %}
+{% block title %}Submissions — Admin — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Promotion <span class="gold">Submissions</span></h1>
+        <p class="admin-subtitle">Review, approve, reject or hold vendor promotions</p>
+      </div>
+      <div class="admin-nav-pills">
+        <a href="{{ url_for('admin_dashboard') }}" class="pill">Overview</a>
+        <a href="{{ url_for('admin_submissions') }}" class="pill pill-active">Submissions</a>
+        <a href="{{ url_for('admin_subscriptions') }}" class="pill">Subscriptions</a>
+        <a href="{{ url_for('admin_vendors') }}" class="pill">Vendors</a>
+        <a href="{{ url_for('admin_blacklist') }}" class="pill">Blacklist</a>
+        <a href="{{ url_for('admin_reports') }}" class="pill">Reports</a>
+      </div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="filter-bar">
+      <a href="?status=pending" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">⏳ Pending</a>
+      <a href="?status=approved" class="filter-btn {% if status_filter == 'approved' %}active{% endif %}">✅ Approved</a>
+      <a href="?status=held" class="filter-btn {% if status_filter == 'held' %}active{% endif %}">⏸ Held</a>
+      <a href="?status=rejected" class="filter-btn {% if status_filter == 'rejected' %}active{% endif %}">❌ Rejected</a>
+      <a href="?status=all" class="filter-btn {% if status_filter == 'all' %}active{% endif %}">All</a>
+    </div>
+
+    {% if submissions %}
+    <div class="submissions-full">
+      {% for s in submissions %}
+      <div class="submission-full-card risk-border-{{ 'low' if s.ai_risk_score < 30 else ('med' if s.ai_risk_score < 60 else 'high') }}">
+
+        <!-- HEADER -->
+        <div class="sfc-header">
+          <div class="sfc-vendor-info">
+            <h3>{{ s.business_name }}</h3>
+            <div class="sfc-meta">
+              <span>👤 {{ s.full_name }}</span>
+              <span>📧 {{ s.email }}</span>
+              <span>📞 {{ s.phone }}</span>
+              {% if s.momo_number %}<span>💰 MoMo: {{ s.momo_number }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="sfc-badges">
+            <div class="risk-gauge">
+              <div class="risk-gauge-bar" style="width:{{ s.ai_risk_score }}%;background:{{ '#ef4444' if s.ai_risk_score >= 60 else ('#f59e0b' if s.ai_risk_score >= 30 else '#22c55e') }}"></div>
+            </div>
+            <div class="risk-score-label risk-{{ 'low' if s.ai_risk_score < 30 else ('med' if s.ai_risk_score < 60 else 'high') }}">
+              AI Risk: {{ s.ai_risk_score }}%
+            </div>
+            <span class="badge badge-sm {% if s.verified_status == 'verified' %}badge-verified{% else %}badge-unverified{% endif %}">
+              {{ '✓ ID Verified' if s.verified_status == 'verified' else '⚠ Unverified ID' }}
+            </span>
+            <span class="status-pill status-{{ s.status }}">{{ s.status.title() }}</span>
+          </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="sfc-body">
+          <!-- LEFT: Media + Content -->
+          <div class="sfc-left">
+            {% if s.flyer_path %}
+            <div class="sfc-media">
+              <img src="/static/{{ s.flyer_path }}" alt="Flyer" class="sfc-flyer" />
+            </div>
+            {% endif %}
+            {% if s.video_path %}
+            <div class="sfc-video">
+              <video controls style="max-width:100%;border-radius:8px;margin-top:8px;">
+                <source src="/static/{{ s.video_path }}" />
+              </video>
+            </div>
+            {% endif %}
+
+            <div class="sfc-content">
+              <div class="sfc-section">
+                <h4>📝 Description</h4>
+                <p>{{ s.business_description }}</p>
+              </div>
+              {% if s.prices %}
+              <div class="sfc-section">
+                <h4>💰 Prices</h4>
+                {% set prices_data = s.prices | from_json %}
+                <p>{{ prices_data.text if prices_data.text else '—' }}</p>
+              </div>
+              {% endif %}
+              <div class="sfc-section">
+                <h4>📞 Contact Details</h4>
+                <p>{{ s.contact_details }}</p>
+              </div>
+              {% if s.promotion_date %}
+              <div class="sfc-section">
+                <h4>📅 Requested Date</h4>
+                <p>{{ s.promotion_date }}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- RIGHT: AI Report + Actions -->
+          <div class="sfc-right">
+
+            <!-- AI WARNINGS -->
+            {% set warnings = s.ai_warnings | from_json %}
+            {% if warnings %}
+            <div class="ai-warnings-box">
+              <h4>🤖 AI Warnings</h4>
+              <ul>
+                {% for w in warnings %}
+                <li>⚠ {{ w }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% else %}
+            <div class="ai-clean-box">
+              <h4>🤖 AI Analysis</h4>
+              <p class="ai-clean">✅ No issues detected — content appears clean.</p>
+            </div>
+            {% endif %}
+
+            <!-- AI CAPTION -->
+            {% if s.ai_caption %}
+            <div class="ai-caption-box">
+              <div class="ai-caption-header">
+                <h4>✍ AI-Generated Caption</h4>
+                <button class="btn btn-xs btn-gold-outline" onclick="copyCaption('caption_{{ s.id }}')">📋 Copy</button>
+              </div>
+              <pre class="caption-text" id="caption_{{ s.id }}">{{ s.ai_caption }}</pre>
+              {% set hashtags = s.ai_hashtags | from_json %}
+              {% if hashtags %}
+              <div class="hashtags-row">
+                {% for tag in hashtags %}
+                <span class="hashtag">{{ tag }}</span>
+                {% endfor %}
+              </div>
+              <div class="full-post-box">
+                <div class="ai-caption-header">
+                  <span class="form-label">Full Post (Caption + Hashtags)</span>
+                  <button class="btn btn-xs btn-gold-outline" onclick="copyFullPost('fullpost_{{ s.id }}')">📋 Copy Full Post</button>
+                </div>
+                <pre class="caption-text" id="fullpost_{{ s.id }}" style="font-size:0.75rem;">{{ s.ai_caption }}
+
+{{ hashtags | join(' ') }}</pre>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- MEDIA DOWNLOAD -->
+            <div class="media-download-box">
+              <h4>📤 Social Media Assets</h4>
+              {% if s.flyer_path %}
+              <a href="/static/{{ s.flyer_path }}" download class="btn btn-sm btn-gold-outline btn-block mb-1">⬇ Download Flyer</a>
+              {% endif %}
+              {% if s.video_path %}
+              <a href="/static/{{ s.video_path }}" download class="btn btn-sm btn-gold-outline btn-block">⬇ Download Video</a>
+              {% endif %}
+              {% if not s.flyer_path and not s.video_path %}
+              <p class="muted-text">No media uploaded</p>
+              {% endif %}
+            </div>
+
+            <!-- ADMIN ACTIONS -->
+            <div class="admin-actions-box">
+              <h4>⚙ Admin Actions</h4>
+              <form method="POST" action="{{ url_for('admin_review_submission', promo_id=s.id, action='approve') }}">
+                <textarea name="notes" class="form-control mb-1" placeholder="Optional admin note…" rows="2"></textarea>
+                <button class="btn btn-approve btn-block mb-1">✅ APPROVE</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_review_submission', promo_id=s.id, action='hold') }}" style="display:inline-block;width:48%">
+                <button class="btn btn-hold btn-block">⏸ HOLD</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_review_submission', promo_id=s.id, action='reject') }}" style="display:inline-block;width:48%">
+                <button class="btn btn-reject btn-block">❌ REJECT</button>
+              </form>
+            </div>
+
+          </div>
+        </div>
+
+        {% if s.admin_notes %}
+        <div class="sfc-admin-note">
+          <strong>Admin Note:</strong> {{ s.admin_notes }}
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No {{ status_filter }} submissions</h3>
+      <p>{% if status_filter == 'pending' %}All caught up — no pending reviews right now.{% else %}No submissions with this status found.{% endif %}</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function copyCaption(id) {
+    const el = document.getElementById(id);
+    navigator.clipboard.writeText(el.textContent).then(() => {
+      showToast('Caption copied to clipboard!');
+    });
+  }
+
+  function copyFullPost(id) {
+    const el = document.getElementById(id);
+    navigator.clipboard.writeText(el.textContent).then(() => {
+      showToast('Full post copied! Ready to paste on Facebook, Instagram, X, or TikTok.');
+    });
+  }
+
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-popup';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+  }
+</script>
+{% endblock %}

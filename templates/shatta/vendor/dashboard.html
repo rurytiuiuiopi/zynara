@@ -1,0 +1,189 @@
+{% extends "shatta/base.html" %}
+{% block title %}Vendor Dashboard — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="dash-header">
+      <div class="dash-welcome">
+        <h1>Welcome, <span class="gold">{{ vendor.full_name.split()[0] }}</span></h1>
+        <p class="dash-business">{{ vendor.business_name }}</p>
+      </div>
+      <div class="dash-badges">
+        {% if vendor.verified_status == 'verified' %}
+          <span class="badge badge-verified">✓ Verified Business</span>
+        {% elif vendor.verified_status == 'pending' %}
+          <span class="badge badge-pending">⏳ Verification Pending</span>
+        {% else %}
+          <span class="badge badge-unverified">⚠ Unverified</span>
+        {% endif %}
+        {% if vendor.trust_badge == 'trusted' %}
+          <span class="badge badge-trusted">⭐ Trusted Vendor</span>
+        {% endif %}
+        {% if vendor.is_suspended %}
+          <span class="badge badge-suspended">🚫 Suspended</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="dash-stats">
+      <div class="dash-stat-card">
+        <div class="dsc-icon">📊</div>
+        <div class="dsc-value">{{ promotions | length }}</div>
+        <div class="dsc-label">Total Promotions</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="dsc-icon">✅</div>
+        <div class="dsc-value">{{ promotions | selectattr('status', 'equalto', 'approved') | list | length }}</div>
+        <div class="dsc-label">Approved</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="dsc-icon">⏳</div>
+        <div class="dsc-value">{{ promotions | selectattr('status', 'equalto', 'pending') | list | length }}</div>
+        <div class="dsc-label">Pending Review</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="dsc-icon">⭐</div>
+        <div class="dsc-value">{% if avg_rating %}{{ avg_rating }}{% else %}—{% endif %}</div>
+        <div class="dsc-label">Avg Rating</div>
+      </div>
+    </div>
+
+    <!-- SUBSCRIPTION STATUS -->
+    <div class="dash-row">
+      <div class="dash-card sub-status-card {% if not subscription %}sub-inactive{% endif %}">
+        <h3 class="card-title">💳 Subscription Status</h3>
+        {% if subscription %}
+          <div class="sub-active-badge">✅ Active — {{ subscription.plan.title() }} Plan</div>
+          <div class="sub-detail">Expires: <strong>{{ subscription.expires_at[:10] }}</strong></div>
+          <div class="sub-detail">This month: <strong>{{ promo_this_month }}</strong> promotion(s) uploaded</div>
+          <a href="{{ url_for('vendor_upload') }}" class="btn btn-gold mt-2">📤 Upload Promotion</a>
+        {% elif pending_sub %}
+          <div class="sub-pending-badge">⏳ Payment Under Review</div>
+          <div class="sub-detail">Plan: <strong>{{ pending_sub.plan.title() }}</strong></div>
+          <div class="sub-detail">Submitted: {{ pending_sub.created_at[:10] }}</div>
+          <p class="sub-note">Admin will approve your payment within 24 hours. You'll be able to upload promotions once approved.</p>
+        {% else %}
+          <div class="sub-inactive-msg">
+            <div class="sub-icon">🔒</div>
+            <p>You don't have an active subscription. Subscribe to start uploading promotions.</p>
+            <a href="{{ url_for('vendor_subscription') }}" class="btn btn-gold">Subscribe Now</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- VENDOR PROFILE SUMMARY -->
+      <div class="dash-card vendor-profile-card">
+        <h3 class="card-title">👤 Your Profile</h3>
+        <div class="profile-row"><span class="profile-label">Business:</span><span>{{ vendor.business_name }}</span></div>
+        <div class="profile-row"><span class="profile-label">Category:</span><span>{{ vendor.business_category }}</span></div>
+        <div class="profile-row"><span class="profile-label">Location:</span><span>{{ vendor.business_location }}</span></div>
+        <div class="profile-row"><span class="profile-label">Phone:</span><span>{{ vendor.phone }}</span></div>
+        {% if vendor.momo_number %}
+        <div class="profile-row"><span class="profile-label">MoMo:</span><span>{{ vendor.momo_number }}</span></div>
+        {% endif %}
+        {% if vendor.id_card_path %}
+          <div class="profile-row id-row">
+            <span class="profile-label">ID Card:</span>
+            <span class="badge badge-sm {% if vendor.verified_status == 'verified' %}badge-verified{% else %}badge-pending{% endif %}">
+              {% if vendor.verified_status == 'verified' %}✓ Verified{% else %}⏳ Under Review{% endif %}
+            </span>
+          </div>
+        {% else %}
+          <div class="profile-row id-row">
+            <span class="profile-label">ID Card:</span>
+            <span class="badge badge-sm badge-unverified">⚠ Not Uploaded</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PROMOTIONS LIST -->
+    <div class="dash-card full-width">
+      <div class="card-header-row">
+        <h3 class="card-title">📢 My Promotions</h3>
+        {% if subscription %}
+          <a href="{{ url_for('vendor_upload') }}" class="btn btn-gold btn-sm">+ New Promotion</a>
+        {% endif %}
+      </div>
+
+      {% if promotions %}
+      <div class="promos-table">
+        <div class="table-head">
+          <span>Description</span>
+          <span>Status</span>
+          <span>AI Score</span>
+          <span>Date</span>
+          <span>Media</span>
+        </div>
+        {% for p in promotions %}
+        <div class="table-row">
+          <span class="table-desc">{{ p.business_description[:60] }}{% if p.business_description|length > 60 %}…{% endif %}</span>
+          <span>
+            {% if p.status == 'approved' %}
+              <span class="status-pill status-approved">✅ Approved</span>
+            {% elif p.status == 'pending' %}
+              <span class="status-pill status-pending">⏳ Pending</span>
+            {% elif p.status == 'rejected' %}
+              <span class="status-pill status-rejected">❌ Rejected</span>
+            {% elif p.status == 'held' %}
+              <span class="status-pill status-held">⏸ On Hold</span>
+            {% endif %}
+          </span>
+          <span>
+            <div class="risk-mini {% if p.ai_risk_score < 30 %}risk-low{% elif p.ai_risk_score < 60 %}risk-med{% else %}risk-high{% endif %}">
+              {{ p.ai_risk_score }}%
+            </div>
+          </span>
+          <span class="table-date">{{ p.created_at[:10] }}</span>
+          <span>
+            {% if p.flyer_path %}<a href="/static/{{ p.flyer_path }}" target="_blank" class="media-link">🖼</a>{% endif %}
+            {% if p.video_path %}<a href="/static/{{ p.video_path }}" target="_blank" class="media-link">🎬</a>{% endif %}
+          </span>
+        </div>
+        {% if p.admin_notes %}
+        <div class="table-note">
+          <span class="note-label">Admin note:</span> {{ p.admin_notes }}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state-sm">
+        <p>No promotions yet. {% if subscription %}<a href="{{ url_for('vendor_upload') }}" class="gold">Upload your first promotion →</a>{% endif %}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- REVIEWS -->
+    {% if reviews %}
+    <div class="dash-card full-width">
+      <h3 class="card-title">⭐ Customer Reviews</h3>
+      <div class="reviews-list">
+        {% for r in reviews %}
+        <div class="review-item">
+          <div class="review-top">
+            <strong>{{ r.reviewer_name }}</strong>
+            <div class="stars">{{'★' * r.rating}}{{ '☆' * (5 - r.rating) }}</div>
+            <span class="review-date">{{ r.created_at[:10] }}</span>
+          </div>
+          {% if r.comment %}<p class="review-comment">{{ r.comment }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if vendor.is_suspended and vendor.suspension_reason %}
+    <div class="alert alert-danger">
+      <strong>⚠ Account Suspended:</strong> {{ vendor.suspension_reason }}<br>
+      Contact support to appeal this decision.
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

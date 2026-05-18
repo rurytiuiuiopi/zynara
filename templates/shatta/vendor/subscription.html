@@ -1,0 +1,158 @@
+{% extends "shatta/base.html" %}
+{% block title %}Subscribe — SHATTA TUESDAY MARKET{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h1>Choose Your <span class="gold">Subscription Plan</span></h1>
+      <p>Pay your yearly subscription to start promoting your business to millions of fans.</p>
+    </div>
+
+    {% if active_sub %}
+    <div class="alert alert-success mb-3">
+      ✅ You already have an active <strong>{{ active_sub.plan.title() }}</strong> plan — expires {{ active_sub.expires_at[:10] }}.
+      You can renew early to extend your subscription.
+    </div>
+    {% endif %}
+
+    <!-- PLANS -->
+    <div class="plans-grid mb-4">
+      {% for key, plan in plans.items() %}
+      <div class="plan-card {% if key == 'standard' %}plan-featured{% endif %}" id="planCard_{{ key }}"
+           onclick="selectPlan('{{ key }}', {{ plan.amount }})">
+        {% if key == 'standard' %}<div class="plan-badge">Most Popular</div>{% endif %}
+        <div class="plan-name">{{ plan.name }}</div>
+        <div class="plan-price">
+          <span class="plan-currency">GHS</span>
+          <span class="plan-amount">{{ plan.amount }}</span>
+          <span class="plan-period">/year</span>
+        </div>
+        <div class="plan-desc">{{ plan.description }}</div>
+        <ul class="plan-features">
+          <li>✓ Vendor Dashboard Access</li>
+          <li>✓ Flyers &amp; Images</li>
+          {% if key in ['standard', 'premium'] %}<li>✓ Video Uploads</li>{% else %}<li class="disabled">✗ Video Uploads</li>{% endif %}
+          {% if key == 'premium' %}<li>✓ Priority Review</li>{% else %}<li class="disabled">✗ Priority Review</li>{% endif %}
+          <li>✓ {{ plan.description }}</li>
+        </ul>
+        <div class="plan-select-btn {% if key == 'standard' %}selected{% endif %}">
+          {% if key == 'standard' %}✓ Selected{% else %}Select Plan{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- PAYMENT FORM -->
+    <div class="payment-form-card">
+      <h2>💳 Payment Details</h2>
+      <p>Selected plan: <strong class="gold" id="selectedPlanLabel">Standard — GHS 600/year</strong></p>
+
+      <div class="payment-instructions">
+        <h4>📲 How to Pay</h4>
+        <div class="pay-step">
+          <span class="pay-step-num">1</span>
+          <span>Send your payment to: <strong class="gold">MoMo: 0244 000 000</strong> or <strong class="gold">Bank: GCB Bank, Acc: 1234567890</strong></span>
+        </div>
+        <div class="pay-step">
+          <span class="pay-step-num">2</span>
+          <span>Use your <strong>business name</strong> as the payment reference</span>
+        </div>
+        <div class="pay-step">
+          <span class="pay-step-num">3</span>
+          <span>Fill in the form below and upload your payment proof</span>
+        </div>
+        <div class="pay-step">
+          <span class="pay-step-num">4</span>
+          <span>Admin will verify and activate your subscription within <strong>24 hours</strong></span>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('vendor_subscription') }}" enctype="multipart/form-data" class="sub-form">
+        <input type="hidden" name="plan" id="selectedPlanInput" value="standard" />
+
+        <div class="payment-tabs">
+          <button type="button" class="payment-tab active" onclick="switchSubTab('momo', this)">📱 MoMo Payment</button>
+          <button type="button" class="payment-tab" onclick="switchSubTab('bank', this)">🏦 Bank Transfer</button>
+        </div>
+
+        <div class="pay-panel active" id="subPayMomo">
+          <div class="form-group">
+            <label class="form-label">MoMo Reference / Transaction ID</label>
+            <input type="text" name="payment_reference" class="form-control" placeholder="e.g. TR2024XXXXXXXXX" />
+            <input type="hidden" name="payment_method" id="payMethodInput" value="momo" />
+          </div>
+        </div>
+
+        <div class="pay-panel" id="subPayBank">
+          <div class="form-group">
+            <label class="form-label">Bank Transfer Reference</label>
+            <input type="text" name="payment_reference" class="form-control" placeholder="Bank reference number" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Upload Payment Proof (Screenshot / Receipt) <span class="required">*</span></label>
+          <div class="file-upload-area" onclick="document.getElementById('payment_proof').click()">
+            <div class="file-upload-icon">📷</div>
+            <div class="file-upload-text">Click to upload payment screenshot</div>
+            <div class="file-upload-hint">JPG, PNG, or PDF</div>
+            <div class="file-upload-preview" id="proofPreview"></div>
+          </div>
+          <input type="file" name="payment_proof" id="payment_proof" accept=".jpg,.jpeg,.png,.pdf" class="file-input-hidden"
+                 onchange="previewFile(this, 'proofPreview')" required />
+        </div>
+
+        <button type="submit" class="btn btn-gold btn-lg btn-block">
+          Submit Payment for Review
+        </button>
+        <p class="form-hint text-center mt-1">Your subscription will be activated within 24 hours of payment confirmation.</p>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let selectedPlan = 'standard';
+  const planPrices = { basic: 300, standard: 600, premium: 1200 };
+
+  function selectPlan(key, amount) {
+    selectedPlan = key;
+    document.getElementById('selectedPlanInput').value = key;
+    document.getElementById('selectedPlanLabel').textContent =
+      key.charAt(0).toUpperCase() + key.slice(1) + ' — GHS ' + amount + '/year';
+
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('planCard_' + key).classList.add('selected');
+
+    document.querySelectorAll('.plan-select-btn').forEach(b => b.textContent = 'Select Plan');
+    document.querySelector('#planCard_' + key + ' .plan-select-btn').textContent = '✓ Selected';
+  }
+
+  function switchSubTab(tab, btn) {
+    document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('subPay' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+    btn.classList.add('active');
+    document.getElementById('payMethodInput').value = tab;
+  }
+
+  function previewFile(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.innerHTML = `<img src="${e.target.result}" style="max-height:100px;border-radius:6px;margin-top:8px;" />`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML = `<p style="color:#D4AF37;margin-top:8px;">📄 ${file.name}</p>`;
+      }
+    }
+  }
+</script>
+{% endblock %}
