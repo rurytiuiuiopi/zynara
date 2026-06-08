@@ -65,6 +65,19 @@ def init_db():
         password_hash TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS gold_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fan_id INTEGER UNIQUE NOT NULL,
+        card_number TEXT UNIQUE NOT NULL,
+        status TEXT DEFAULT 'pending',
+        proof_path TEXT,
+        amount_paid INTEGER DEFAULT 100,
+        valid_until TEXT,
+        approved_at TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (fan_id) REFERENCES fans(id)
+    );
     """)
 
     conn.commit()

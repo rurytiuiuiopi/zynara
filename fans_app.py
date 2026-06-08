@@ -1,18 +1,27 @@
 import os
 import json
-from datetime import datetime
+import uuid
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, jsonify, send_from_directory
+    session, flash, jsonify, send_from_directory, Response
 )
 from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
 
 from fans_db import get_db, init_db, generate_fan_number
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "shatta-fans-secret-2024")
+
+CARD_PRICE = 100  # GHS
+UPLOAD_DIR = os.path.join("static", "fans", "proofs")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def _momo_number():
+    return os.environ.get("MOMO_NUMBER", "+233248716572")
 
 COUNTRIES = [
     "Afghanistan","Albania","Algeria","Angola","Argentina","Armenia","Australia",
@@ -366,6 +375,124 @@ def admin_fanbases():
     fanbases = db.execute("SELECT * FROM fanbases ORDER BY continent, country").fetchall()
     db.close()
     return render_template("fans/admin/fanbases.html", fanbases=fanbases)
+
+
+# ── GOLD CARD ROUTES ───────────────────────────────────────────
+
+@app.route("/gold-card")
+def gold_card_info():
+    return render_template("fans/gold_card_info.html", price=CARD_PRICE)
+
+
+@app.route("/gold-card/apply/<int:fan_id>", methods=["GET", "POST"])
+def gold_card_apply(fan_id):
+    db = get_db()
+    fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
+    if not fan:
+        db.close()
+        return redirect(url_for("index"))
+
+    existing = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
+
+    if request.method == "POST":
+        if existing:
+            flash("You already have a card application.", "error")
+            db.close()
+            return redirect(url_for("gold_card_status", fan_id=fan_id))
+
+        proof = request.files.get("proof")
+        proof_path = None
+        if proof and proof.filename:
+            ext = secure_filename(proof.filename).rsplit(".", 1)[-1].lower()
+            fname = f"{uuid.uuid4()}.{ext}"
+            proof.save(os.path.join(UPLOAD_DIR, fname))
+            proof_path = f"fans/proofs/{fname}"
+
+        # Generate card number: SM XXXX XXXX XXXX XXXX
+        import random
+        parts = [str(random.randint(1000, 9999)) for _ in range(4)]
+        card_number = "SM " + " ".join(parts)
+        while db.execute("SELECT id FROM gold_cards WHERE card_number = ?", (card_number,)).fetchone():
+            parts = [str(random.randint(1000, 9999)) for _ in range(4)]
+            card_number = "SM " + " ".join(parts)
+
+        db.execute("""
+            INSERT INTO gold_cards (fan_id, card_number, proof_path, amount_paid)
+            VALUES (?, ?, ?, ?)
+        """, (fan_id, card_number, proof_path, CARD_PRICE))
+        db.commit()
+        db.close()
+        flash("Application submitted! Admin will verify your payment within 24 hours.", "success")
+        return redirect(url_for("gold_card_status", fan_id=fan_id))
+
+    db.close()
+    return render_template("fans/gold_card_apply.html",
+        fan=fan, existing=existing, price=CARD_PRICE,
+        momo=_momo_number()
+    )
+
+
+@app.route("/gold-card/status/<int:fan_id>")
+def gold_card_status(fan_id):
+    db = get_db()
+    fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
+    card = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
+    db.close()
+    if not fan:
+        return redirect(url_for("index"))
+    return render_template("fans/gold_card_status.html", fan=fan, card=card)
+
+
+@app.route("/admin/gold-cards")
+@admin_required
+def admin_gold_cards():
+    db = get_db()
+    cards = db.execute("""
+        SELECT gc.*, f.full_name, f.country, f.city, f.phone, f.fan_number
+        FROM gold_cards gc
+        JOIN fans f ON f.id = gc.fan_id
+        ORDER BY gc.created_at DESC
+    """).fetchall()
+    db.close()
+    return render_template("fans/admin/gold_cards.html", cards=cards)
+
+
+@app.route("/admin/gold-cards/approve/<int:card_id>", methods=["POST"])
+@admin_required
+def admin_gold_card_approve(card_id):
+    db = get_db()
+    valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
+    db.execute("""
+        UPDATE gold_cards SET status='active', valid_until=?, approved_at=datetime('now')
+        WHERE id=?
+    """, (valid_until, card_id))
+    db.commit()
+    db.close()
+    flash("Gold Card approved!", "success")
+    return redirect(url_for("admin_gold_cards"))
+
+
+@app.route("/admin/gold-cards/reject/<int:card_id>", methods=["POST"])
+@admin_required
+def admin_gold_card_reject(card_id):
+    db = get_db()
+    db.execute("UPDATE gold_cards SET status='rejected' WHERE id=?", (card_id,))
+    db.commit()
+    db.close()
+    flash("Gold Card rejected.", "error")
+    return redirect(url_for("admin_gold_cards"))
+
+
+@app.route("/verify/<card_number>")
+def verify_card(card_number):
+    db = get_db()
+    card = db.execute("""
+        SELECT gc.*, f.full_name, f.country, f.fan_number
+        FROM gold_cards gc JOIN fans f ON f.id = gc.fan_id
+        WHERE gc.card_number = ?
+    """, (card_number,)).fetchone()
+    db.close()
+    return render_template("fans/verify_card.html", card=card, card_number=card_number)
 
 
 @app.route("/favicon.ico")

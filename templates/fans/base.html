@@ -27,6 +27,7 @@
       <a href="{{ url_for('fanbases') }}" class="nav-link">Fanbases</a>
       <a href="{{ url_for('fans_directory') }}" class="nav-link">Fan Directory</a>
       <a href="{{ url_for('announcements') }}" class="nav-link">News</a>
+      <a href="{{ url_for('gold_card_info') }}" class="nav-link gold">💳 Gold Card</a>
       {% if session.get('admin_id') %}
         <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin</a>
         <a href="{{ url_for('admin_logout') }}" class="btn btn-outline btn-sm">Logout</a>

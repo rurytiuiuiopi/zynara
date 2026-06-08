@@ -1,0 +1,74 @@
+{% extends "fans/base.html" %}
+{% block title %}Apply for SM Gold Card{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:640px">
+    <div class="section-header">
+      <h2 class="section-title">Get Your <span class="gold">Gold Card</span></h2>
+      <p class="section-sub">{{ fan.full_name }} — {{ fan.fan_number }}</p>
+    </div>
+
+    {% if existing %}
+      <div class="alert alert-{% if existing.status == 'active' %}success{% elif existing.status == 'rejected' %}error{% else %}pending{% endif %}" style="position:static;max-width:100%;margin-bottom:24px">
+        {% if existing.status == 'active' %}✅ Your Gold Card is active!
+        {% elif existing.status == 'rejected' %}❌ Your application was rejected. Contact admin.
+        {% else %}⏳ Your application is under review.{% endif %}
+      </div>
+      <a href="{{ url_for('gold_card_status', fan_id=fan.id) }}" class="btn btn-gold">View Card Status</a>
+    {% else %}
+
+    <!-- STEP 1: PAY -->
+    <div class="apply-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Pay via MoMo</h3>
+        <p>Send <strong class="gold">GHS {{ price }}</strong> to the official SM MoMo number.</p>
+        <button class="btn btn-gold" id="revealBtn" onclick="revealMomo()">Tap to Reveal MoMo Number</button>
+        <div id="momoReveal" style="display:none;margin-top:16px">
+          <div class="momo-box">
+            <div class="momo-label">Send GHS {{ price }} to:</div>
+            <div class="momo-number">{{ momo }}</div>
+            <div class="momo-name">Shatta Movement Official</div>
+            <div class="momo-note">Reference: <strong>{{ fan.fan_number }}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: UPLOAD -->
+    <div class="apply-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Upload Payment Screenshot</h3>
+        <p>Take a screenshot of your MoMo payment confirmation and upload it below.</p>
+        <form method="POST" enctype="multipart/form-data">
+          <div class="form-group">
+            <label>Payment Screenshot *</label>
+            <input type="file" name="proof" class="form-control" accept="image/*" required/>
+          </div>
+          <button type="submit" class="btn btn-gold mt-1">Submit Application</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="apply-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Get Your Gold Card</h3>
+        <p>Admin verifies your payment within 24 hours. Your Gold Card activates instantly upon approval.</p>
+      </div>
+    </div>
+
+    {% endif %}
+  </div>
+</section>
+
+<script>
+function revealMomo() {
+  document.getElementById('momoReveal').style.display = 'block';
+  document.getElementById('revealBtn').style.display = 'none';
+}
+</script>
+{% endblock %}

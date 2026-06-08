@@ -1,0 +1,59 @@
+{% extends "fans/base.html" %}
+{% block title %}Gold Card Applications — Admin{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+    <div class="dash-header">
+      <h1>SM <span class="gold">Gold Cards</span></h1>
+      <div>
+        <span style="color:var(--text2);font-size:14px">{{ cards|length }} application(s)</span>
+      </div>
+    </div>
+
+    <div class="dash-card full-width">
+      <div class="promos-table">
+        <div class="table-head">
+          <span>Fan</span><span>Country</span><span>Card Number</span>
+          <span>Status</span><span>Proof</span><span>Applied</span><span>Actions</span>
+        </div>
+        {% for c in cards %}
+        <div class="table-row">
+          <span>
+            <strong>{{ c.full_name }}</strong><br>
+            <small style="color:var(--text3)">{{ c.fan_number }} · {{ c.phone }}</small>
+          </span>
+          <span>{{ c.country }}</span>
+          <span style="font-size:12px;color:var(--gold)">{{ c.card_number }}</span>
+          <span>
+            {% if c.status == 'active' %}
+              <span class="status-pill" style="background:#052e16;color:#22c55e">✅ Active</span>
+            {% elif c.status == 'rejected' %}
+              <span class="status-pill" style="background:#2d0a0a;color:#ef4444">❌ Rejected</span>
+            {% else %}
+              <span class="status-pill" style="background:#1a1a0a;color:#eab308">⏳ Pending</span>
+            {% endif %}
+          </span>
+          <span>
+            {% if c.proof_path %}
+              <a href="/static/{{ c.proof_path }}" target="_blank" class="btn btn-sm btn-outline">View</a>
+            {% else %}—{% endif %}
+          </span>
+          <span class="table-date">{{ c.created_at[:10] }}</span>
+          <span style="display:flex;gap:6px">
+            {% if c.status == 'pending' %}
+              <form method="POST" action="{{ url_for('admin_gold_card_approve', card_id=c.id) }}">
+                <button type="submit" class="btn btn-sm btn-gold">Approve</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_gold_card_reject', card_id=c.id) }}" onsubmit="return confirm('Reject this?')">
+                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+              </form>
+            {% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

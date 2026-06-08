@@ -1,0 +1,77 @@
+{% extends "fans/base.html" %}
+{% block title %}SM Gold Card — {{ fan.full_name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:600px;text-align:center">
+
+    {% if card and card.status == 'active' %}
+
+      <div class="success-banner">
+        <div class="success-icon">🏆</div>
+        <h2>Your SM Gold Card is Active!</h2>
+        <p>Valid until <strong class="gold">{{ card.valid_until }}</strong></p>
+      </div>
+
+      <!-- GOLD CARD -->
+      <div class="gold-card-real">
+        <div class="gcr-shine"></div>
+        <div class="gcr-top">
+          <div class="gcr-brand">SHATTA MOVEMENT</div>
+          <div class="gcr-logo">SM</div>
+        </div>
+        <div class="gcr-chip"></div>
+        <div class="gcr-number">{{ card.card_number }}</div>
+        <div class="gcr-bottom">
+          <div>
+            <div class="gcr-label">MEMBER</div>
+            <div class="gcr-value">{{ fan.full_name.upper() }}</div>
+          </div>
+          <div>
+            <div class="gcr-label">VALID THRU</div>
+            <div class="gcr-value">{{ card.valid_until[2:4] }}/{{ card.valid_until[5:7] }}</div>
+          </div>
+          <div>
+            <div class="gcr-label">TYPE</div>
+            <div class="gcr-value">GOLD</div>
+          </div>
+        </div>
+        <!-- QR CODE area -->
+        <div class="gcr-qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{ request.host_url }}verify/{{ card.card_number | urlencode }}&color=1a1a1a&bgcolor=D4AF37" alt="QR Code" width="80" height="80"/>
+        </div>
+      </div>
+
+      <p style="color:var(--text2);font-size:13px;margin-top:16px">Show this card + QR code at any SM concert for priority entry.</p>
+      <div style="margin-top:20px">
+        <a href="{{ url_for('index') }}" class="btn btn-outline">Back to Home</a>
+      </div>
+
+    {% elif card and card.status == 'pending' %}
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <h3>Payment Under Review</h3>
+        <p>Admin is verifying your MoMo payment. Your Gold Card will activate within 24 hours.</p>
+        <p style="color:var(--text3);font-size:13px">Fan: {{ fan.full_name }} — {{ fan.fan_number }}</p>
+      </div>
+
+    {% elif card and card.status == 'rejected' %}
+      <div class="empty-state">
+        <div class="empty-icon">❌</div>
+        <h3>Application Rejected</h3>
+        <p>Your payment could not be verified. Please contact admin or try again.</p>
+        <a href="{{ url_for('gold_card_apply', fan_id=fan.id) }}" class="btn btn-gold">Try Again</a>
+      </div>
+
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">💳</div>
+        <h3>No Gold Card Yet</h3>
+        <p>Apply for your SM Gold Card to get concert access and a verified member badge.</p>
+        <a href="{{ url_for('gold_card_apply', fan_id=fan.id) }}" class="btn btn-gold">Apply Now — GHS 100/year</a>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

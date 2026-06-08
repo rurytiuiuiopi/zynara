@@ -32,7 +32,7 @@
 
     <div class="card-actions">
       <a href="{{ url_for('index') }}" class="btn btn-outline">Back to Home</a>
-      <a href="{{ url_for('fans_directory') }}" class="btn btn-gold">Browse Fan Directory</a>
+      <a href="{{ url_for('gold_card_apply', fan_id=fan.id) }}" class="btn btn-gold">💳 Get SM Gold Card</a>
     </div>
 
     {% if fan.favorite_songs %}

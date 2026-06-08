@@ -1,0 +1,29 @@
+{% extends "fans/base.html" %}
+{% block title %}Card Verification — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:500px;text-align:center">
+    {% if card and card.status == 'active' %}
+      <div class="verify-valid">
+        <div style="font-size:64px">✅</div>
+        <h2 class="gold">VALID MEMBER</h2>
+        <div class="verify-details">
+          <div class="verify-name">{{ card.full_name }}</div>
+          <div class="verify-country">{{ card.country }}</div>
+          <div class="verify-num">{{ card.fan_number }}</div>
+          <div class="verify-card">Card: {{ card.card_number }}</div>
+          <div class="verify-exp">Valid until: {{ card.valid_until }}</div>
+        </div>
+        <div class="verify-badge">✓ Official Shatta Movement Member</div>
+      </div>
+    {% else %}
+      <div class="verify-invalid">
+        <div style="font-size:64px">❌</div>
+        <h2 style="color:var(--danger)">INVALID CARD</h2>
+        <p>Card number <strong>{{ card_number }}</strong> is not valid or has expired.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "fans/base.html" %}
+{% block title %}SM Gold Card — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <div class="section-header">
+      <h2 class="section-title">SM <span class="gold">Gold Card</span></h2>
+      <p class="section-sub">Your official Shatta Movement membership — valid at all concerts</p>
+    </div>
+
+    <!-- CARD PREVIEW -->
+    <div class="gold-card-preview">
+      <div class="gcp-shine"></div>
+      <div class="gcp-top">
+        <div class="gcp-brand">SHATTA MOVEMENT</div>
+        <div class="gcp-logo">SM</div>
+      </div>
+      <div class="gcp-chip"></div>
+      <div class="gcp-number">SM •••• •••• •••• ••••</div>
+      <div class="gcp-bottom">
+        <div>
+          <div class="gcp-label">MEMBER NAME</div>
+          <div class="gcp-value">YOUR NAME</div>
+        </div>
+        <div>
+          <div class="gcp-label">VALID THRU</div>
+          <div class="gcp-value">12/26</div>
+        </div>
+        <div>
+          <div class="gcp-label">TYPE</div>
+          <div class="gcp-value">GOLD</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERKS -->
+    <div class="card-perks">
+      <div class="perk-item">
+        <div class="perk-icon">🎫</div>
+        <div class="perk-text">
+          <strong>Concert Access</strong>
+          <span>Show your card at any SM event as proof of membership</span>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-icon">✅</div>
+        <div class="perk-text">
+          <strong>Verified Member</strong>
+          <span>Gold badge on your fan profile — stand out in the directory</span>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-icon">🔐</div>
+        <div class="perk-text">
+          <strong>QR Verification</strong>
+          <span>Unique QR code — scan at gate to instantly verify your membership</span>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-icon">🌍</div>
+        <div class="perk-text">
+          <strong>Valid Worldwide</strong>
+          <span>Recognized at all Shatta Wale events globally for 1 year</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-cta">
+      <div class="card-price-display">
+        <span class="card-currency">GHS</span>
+        <span class="card-amount">{{ price }}</span>
+        <span class="card-period">/year</span>
+      </div>
+      <p style="color:var(--text2);margin-bottom:20px">One-time yearly fee. Pay via MoMo. Admin verifies within 24 hours.</p>
+      <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Register First, Then Get Card</a>
+      <p style="font-size:13px;color:var(--text3);margin-top:12px">Already registered? <a href="{{ url_for('fans_directory') }}">Find your profile</a> to apply.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
