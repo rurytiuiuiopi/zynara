@@ -1,0 +1,115 @@
+{% extends "fans/base.html" %}
+{% block title %}Register — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="form-section">
+  <div class="container">
+    <div class="form-header">
+      <div class="form-badge">🎵 Free Registration</div>
+      <h1>Join the <span class="gold">Shatta Movement</span></h1>
+      <p>Register as an official SM fan. Get your unique fan number and membership card.</p>
+    </div>
+
+    <form method="POST" class="reg-form">
+
+      <div class="form-block">
+        <h3 class="form-block-title">Personal Info</h3>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" name="full_name" class="form-control" placeholder="Your full name" required/>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" name="email" class="form-control" placeholder="your@email.com" required/>
+          </div>
+          <div class="form-group">
+            <label>Phone Number *</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+233 XX XXX XXXX" required/>
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Number</label>
+            <input type="tel" name="whatsapp" class="form-control" placeholder="Same as phone or different"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-block">
+        <h3 class="form-block-title">Location</h3>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Country *</label>
+            <select name="country" class="form-control" required>
+              <option value="">Select your country…</option>
+              {% for c in countries %}
+              <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>City *</label>
+            <input type="text" name="city" class="form-control" placeholder="Your city" required/>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-block">
+        <h3 class="form-block-title">Social Media <span class="optional">(optional)</span></h3>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Instagram</label>
+            <input type="text" name="instagram" class="form-control" placeholder="@username"/>
+          </div>
+          <div class="form-group">
+            <label>TikTok</label>
+            <input type="text" name="tiktok" class="form-control" placeholder="@username"/>
+          </div>
+          <div class="form-group">
+            <label>Twitter / X</label>
+            <input type="text" name="twitter" class="form-control" placeholder="@username"/>
+          </div>
+          <div class="form-group">
+            <label>Facebook</label>
+            <input type="text" name="facebook" class="form-control" placeholder="Profile name or URL"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-block">
+        <h3 class="form-block-title">Fan Info</h3>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Favorite Shatta Wale Songs</label>
+            <textarea name="favorite_songs" class="form-control" rows="2" placeholder="e.g. Gringo, Melissa, My Level…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Fan Since (year)</label>
+            <input type="number" name="fan_since" class="form-control" placeholder="e.g. 2015" min="2004" max="2025"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Join a Fanbase Chapter <span class="optional">(optional)</span></label>
+          <select name="fanbase_id" class="form-control">
+            <option value="">— Select your chapter —</option>
+            {% set current_continent = namespace(value='') %}
+            {% for fb in fanbases %}
+              {% if fb.continent != current_continent.value %}
+                {% set current_continent.value = fb.continent %}
+                <optgroup label="{{ fb.continent }}">
+              {% endif %}
+              <option value="{{ fb.id }}">{{ fb.name }} ({{ fb.country }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-submit">
+        <button type="submit" class="btn btn-gold btn-lg">
+          🎵 Register as SM Fan
+        </button>
+        <p class="form-note">Free registration. No spam. Your data is used only for Shatta Wale's fan community.</p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "fans/base.html" %}
+{% block title %}Manage Fanbases — Admin{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+    <div class="dash-header">
+      <h1>SM <span class="gold">Chapters</span></h1>
+    </div>
+
+    <div class="dash-card" style="max-width:600px;margin-bottom:32px">
+      <h3 class="card-title">Add New Chapter</h3>
+      <form method="POST" class="form-grid-2">
+        <div class="form-group">
+          <label>Chapter Name *</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. SM Kenya" required/>
+        </div>
+        <div class="form-group">
+          <label>Country *</label>
+          <input type="text" name="country" class="form-control" placeholder="Kenya" required/>
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" name="city" class="form-control" placeholder="Nairobi"/>
+        </div>
+        <div class="form-group">
+          <label>Continent *</label>
+          <select name="continent" class="form-control" required>
+            <option value="Africa">Africa</option>
+            <option value="Europe">Europe</option>
+            <option value="Americas">Americas</option>
+            <option value="Asia Pacific">Asia Pacific</option>
+            <option value="Middle East">Middle East</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Leader Name</label>
+          <input type="text" name="leader_name" class="form-control" placeholder="Chapter leader"/>
+        </div>
+        <div class="form-group">
+          <label>Leader Contact</label>
+          <input type="text" name="leader_contact" class="form-control" placeholder="Phone or email"/>
+        </div>
+        <div style="grid-column:1/-1">
+          <button type="submit" class="btn btn-gold">Add Chapter</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="dash-card full-width">
+      <h3 class="card-title">All Chapters ({{ fanbases|length }})</h3>
+      <div class="promos-table">
+        <div class="table-head">
+          <span>Name</span><span>Country</span><span>City</span>
+          <span>Continent</span><span>Leader</span>
+        </div>
+        {% for fb in fanbases %}
+        <div class="table-row">
+          <span>{{ fb.name }}</span>
+          <span>{{ fb.country }}</span>
+          <span>{{ fb.city or '—' }}</span>
+          <span>{{ fb.continent }}</span>
+          <span>{{ fb.leader_name or '—' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

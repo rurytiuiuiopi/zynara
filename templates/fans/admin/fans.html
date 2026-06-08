@@ -1,0 +1,55 @@
+{% extends "fans/base.html" %}
+{% block title %}All Fans — Admin{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+    <div class="dash-header">
+      <h1>All <span class="gold">Fans</span></h1>
+      <a href="{{ url_for('admin_export') }}" class="btn btn-gold btn-sm">Export CSV</a>
+    </div>
+
+    <form method="GET" class="filter-form mb-2">
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search name, email, city…"/>
+      <select name="country" class="form-control">
+        <option value="">All Countries</option>
+        {% for c in countries %}
+        <option value="{{ c.country }}" {% if c.country == selected_country %}selected{% endif %}>{{ c.country }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-gold">Filter</button>
+      <a href="{{ url_for('admin_fans') }}" class="btn btn-outline">Clear</a>
+    </form>
+
+    <div class="dash-card full-width">
+      <p style="color:var(--text2);margin-bottom:12px">{{ fans|length }} fan(s) found</p>
+      <div class="promos-table">
+        <div class="table-head">
+          <span>Fan No.</span>
+          <span>Name</span>
+          <span>Country / City</span>
+          <span>Phone</span>
+          <span>Email</span>
+          <span>Socials</span>
+          <span>Since</span>
+        </div>
+        {% for fan in fans %}
+        <div class="table-row">
+          <span class="gold" style="font-size:12px">{{ fan.fan_number }}</span>
+          <span>{{ fan.full_name }}</span>
+          <span>{{ fan.city }}, {{ fan.country }}</span>
+          <span style="font-size:12px">{{ fan.phone }}</span>
+          <span style="font-size:12px">{{ fan.email }}</span>
+          <span>
+            {% if fan.instagram %}<span class="social-tag">IG</span>{% endif %}
+            {% if fan.tiktok %}<span class="social-tag">TK</span>{% endif %}
+            {% if fan.twitter %}<span class="social-tag">X</span>{% endif %}
+          </span>
+          <span>{{ fan.fan_since or '—' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

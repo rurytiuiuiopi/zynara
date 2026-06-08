@@ -1,0 +1,153 @@
+{% extends "fans/base.html" %}
+{% block title %}SHATTA FANS — Official Global Fan Community{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">🇬🇭 Shatta Movement Worldwide</div>
+    <h1 class="hero-title">SHATTA<br><span class="gold">FANS</span></h1>
+    <p class="hero-slogan">The Official Global Fan Community of Shatta Wale</p>
+    <p class="hero-sub">Join millions of Shatta Movement fans across the world. Register today and be part of something bigger.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Join The Movement</a>
+      <a href="{{ url_for('fans_directory') }}" class="btn btn-outline btn-lg">Browse Fans</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-bar">
+  <div class="stats-container">
+    <div class="stat-item">
+      <span class="stat-number">{{ total_fans }}</span>
+      <span class="stat-label">Registered Fans</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">{{ total_countries }}</span>
+      <span class="stat-label">Countries</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">{{ total_fanbases }}</span>
+      <span class="stat-label">Fanbase Chapters</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-number">🌍</span>
+      <span class="stat-label">Worldwide</span>
+    </div>
+  </div>
+</section>
+
+<!-- ANNOUNCEMENTS -->
+{% if announcements %}
+<section class="section" id="news">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Latest <span class="gold">News</span></h2>
+      <p class="section-sub">Updates from Shatta Wale</p>
+    </div>
+    <div class="announcements-grid">
+      {% for ann in announcements %}
+      <div class="ann-card {% if ann.is_pinned %}ann-pinned{% endif %}">
+        {% if ann.is_pinned %}<div class="ann-pin-badge">📌 Pinned</div>{% endif %}
+        <div class="ann-category">{{ ann.category.upper() }}</div>
+        <h3 class="ann-title">{{ ann.title }}</h3>
+        <p class="ann-body">{{ ann.body[:150] }}{% if ann.body|length > 150 %}…{% endif %}</p>
+        {% if ann.link_url %}
+          <a href="{{ ann.link_url }}" class="btn btn-sm btn-gold-outline" target="_blank">Learn More</a>
+        {% endif %}
+        <div class="ann-date">{{ ann.created_at[:10] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <a href="{{ url_for('announcements') }}" class="btn btn-outline">All Announcements</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- TOP COUNTRIES -->
+{% if top_countries %}
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">SM Around <span class="gold">The World</span></h2>
+      <p class="section-sub">Countries with the most Shatta Movement fans</p>
+    </div>
+    <div class="countries-grid">
+      {% for row in top_countries %}
+      <a href="{{ url_for('fans_directory', country=row.country) }}" class="country-card">
+        <div class="country-name">{{ row.country }}</div>
+        <div class="country-count">{{ row.cnt }} fan{% if row.cnt != 1 %}s{% endif %}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- FANBASES PREVIEW -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">SM <span class="gold">Chapters</span></h2>
+      <p class="section-sub">Official Shatta Movement fanbase groups worldwide</p>
+    </div>
+    {% for continent, bases in fanbases_by_continent.items() %}
+    <div class="continent-block">
+      <h3 class="continent-title">{{ continent }}</h3>
+      <div class="fanbases-row">
+        {% for fb in bases %}
+        <div class="fanbase-chip">
+          <span class="fb-name">{{ fb.name }}</span>
+          <span class="fb-country">{{ fb.country }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <div style="text-align:center;margin-top:32px">
+      <a href="{{ url_for('fanbases') }}" class="btn btn-gold">View All Chapters</a>
+    </div>
+  </div>
+</section>
+
+<!-- RECENT FANS -->
+{% if recent_fans %}
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Recently <span class="gold">Joined</span></h2>
+      <p class="section-sub">Welcome to the latest members of the movement</p>
+    </div>
+    <div class="recent-fans-grid">
+      {% for fan in recent_fans %}
+      <div class="recent-fan-card">
+        <div class="rfc-avatar">{{ fan.full_name[0].upper() }}</div>
+        <div class="rfc-info">
+          <div class="rfc-name">{{ fan.full_name }}</div>
+          <div class="rfc-location">{{ fan.city }}, {{ fan.country }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container cta-container">
+    <h2>Ready to Join the Shatta Movement?</h2>
+    <p>Register now and become an official SM fan. Free forever.</p>
+    <a href="{{ url_for('register') }}" class="btn btn-gold btn-lg">Register as SM Fan</a>
+  </div>
+</section>
+
+{% endblock %}

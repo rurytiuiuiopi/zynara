@@ -1,0 +1,46 @@
+{% extends "fans/base.html" %}
+{% block title %}{{ fan.full_name }} — SM Fan Card{% endblock %}
+
+{% block content %}
+<section class="card-section">
+  <div class="container">
+    <div class="success-banner">
+      <div class="success-icon">🎉</div>
+      <h2>Welcome to the Shatta Movement!</h2>
+      <p>You are now an official SM Fan. Here is your membership card.</p>
+    </div>
+
+    <div class="fan-card">
+      <div class="fc-header">
+        <div class="fc-brand">SHATTA FANS</div>
+        <div class="fc-sub">Official SM Membership</div>
+      </div>
+      <div class="fc-body">
+        <div class="fc-avatar">{{ fan.full_name[0].upper() }}</div>
+        <div class="fc-details">
+          <div class="fc-name">{{ fan.full_name }}</div>
+          <div class="fc-location">{{ fan.city }}, {{ fan.country }}</div>
+          {% if fanbase %}<div class="fc-chapter">{{ fanbase.name }}</div>{% endif %}
+          <div class="fc-number">Fan No. <strong>{{ fan.fan_number }}</strong></div>
+        </div>
+      </div>
+      <div class="fc-footer">
+        <div class="fc-joined">Member since {{ fan.registered_at[:10] }}</div>
+        <div class="fc-seal">SM</div>
+      </div>
+    </div>
+
+    <div class="card-actions">
+      <a href="{{ url_for('index') }}" class="btn btn-outline">Back to Home</a>
+      <a href="{{ url_for('fans_directory') }}" class="btn btn-gold">Browse Fan Directory</a>
+    </div>
+
+    {% if fan.favorite_songs %}
+    <div class="fan-details-box">
+      <h4>Favorite Songs</h4>
+      <p>{{ fan.favorite_songs }}</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

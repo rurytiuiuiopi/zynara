@@ -1,0 +1,68 @@
+{% extends "fans/base.html" %}
+{% block title %}Post Announcement — Admin{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+    <div class="dash-header">
+      <h1>Post <span class="gold">Announcement</span></h1>
+    </div>
+
+    <div class="dash-card" style="max-width:600px">
+      <form method="POST">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. New Album Out Now!" required/>
+        </div>
+        <div class="form-group">
+          <label>Message *</label>
+          <textarea name="body" class="form-control" rows="4" placeholder="Write your announcement…" required></textarea>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Category</label>
+            <select name="category" class="form-control">
+              <option value="general">General</option>
+              <option value="music">Music Release</option>
+              <option value="concert">Concert / Event</option>
+              <option value="news">News</option>
+              <option value="alert">Alert</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Link URL (optional)</label>
+            <input type="url" name="link_url" class="form-control" placeholder="https://…"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Image URL (optional)</label>
+          <input type="url" name="image_url" class="form-control" placeholder="https://…"/>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" name="is_pinned"/> Pin this announcement (shows first)</label>
+        </div>
+        <button type="submit" class="btn btn-gold">Post Announcement</button>
+      </form>
+    </div>
+
+    {% if announcements %}
+    <div class="dash-card full-width" style="margin-top:32px">
+      <h3 class="card-title">Posted Announcements</h3>
+      {% for ann in announcements %}
+      <div class="ann-admin-row">
+        <div>
+          {% if ann.is_pinned %}<span class="gold">📌</span>{% endif %}
+          <strong>{{ ann.title }}</strong>
+          <span class="ann-cat" style="margin-left:8px">{{ ann.category }}</span>
+          <div style="color:var(--text2);font-size:13px;margin-top:4px">{{ ann.created_at[:10] }}</div>
+        </div>
+        <form method="POST" action="{{ url_for('admin_announce_delete', ann_id=ann.id) }}" onsubmit="return confirm('Delete this?')">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

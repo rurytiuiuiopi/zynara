@@ -1,0 +1,57 @@
+{% extends "fans/base.html" %}
+{% block title %}Fan Directory — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">SM Fan <span class="gold">Directory</span></h2>
+      <p class="section-sub">Shatta Movement fans around the world</p>
+    </div>
+
+    <div class="dir-filters">
+      <form method="GET" class="filter-form">
+        <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search fans…"/>
+        <select name="country" class="form-control">
+          <option value="">All Countries</option>
+          {% for row in countries_with_fans %}
+          <option value="{{ row.country }}" {% if row.country == selected_country %}selected{% endif %}>
+            {{ row.country }} ({{ row.cnt }})
+          </option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-gold">Search</button>
+        {% if selected_country or search %}
+          <a href="{{ url_for('fans_directory') }}" class="btn btn-outline">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+
+    {% if fans %}
+    <div class="dir-grid">
+      {% for fan in fans %}
+      <div class="dir-card">
+        <div class="dir-avatar">{{ fan.full_name[0].upper() }}</div>
+        <div class="dir-info">
+          <div class="dir-name">{{ fan.full_name }}</div>
+          <div class="dir-location">{{ fan.city }}, {{ fan.country }}</div>
+          <div class="dir-number">{{ fan.fan_number }}</div>
+        </div>
+        <div class="dir-socials">
+          {% if fan.instagram %}<span class="social-tag">IG</span>{% endif %}
+          {% if fan.tiktok %}<span class="social-tag">TK</span>{% endif %}
+          {% if fan.twitter %}<span class="social-tag">X</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>No fans found</h3>
+      <p>Try a different search or country.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

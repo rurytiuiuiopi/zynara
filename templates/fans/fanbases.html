@@ -1,0 +1,40 @@
+{% extends "fans/base.html" %}
+{% block title %}SM Fanbase Chapters — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">SM <span class="gold">Chapters</span></h2>
+      <p class="section-sub">Official Shatta Movement fanbase groups across the globe</p>
+    </div>
+
+    {% for continent, bases in fanbases_by_continent.items() %}
+    <div class="continent-section">
+      <h3 class="continent-heading">{{ continent }}</h3>
+      <div class="fanbases-grid">
+        {% for fb in bases %}
+        <div class="fb-card">
+          <div class="fb-card-top">
+            <div class="fb-card-name">{{ fb.name }}</div>
+            {% if fb.is_official %}<div class="fb-official-badge">✓ Official</div>{% endif %}
+          </div>
+          <div class="fb-card-location">{{ fb.city }}{% if fb.city %}, {% endif %}{{ fb.country }}</div>
+          {% if fb.leader_name %}
+          <div class="fb-leader">Leader: {{ fb.leader_name }}</div>
+          {% endif %}
+          <a href="{{ url_for('fans_directory', country=fb.country) }}" class="btn btn-sm btn-gold-outline mt-1">View Fans</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="add-fanbase-cta">
+      <h3>Is your fanbase not listed?</h3>
+      <p>Contact us to get your official SM fanbase chapter added to the platform.</p>
+      <a href="{{ url_for('register') }}" class="btn btn-gold">Register & Join</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "fans/base.html" %}
+{% block title %}Admin Login — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="form-section">
+  <div class="container" style="max-width:420px">
+    <div class="form-header">
+      <h2>Admin <span class="gold">Login</span></h2>
+    </div>
+    <form method="POST" class="reg-form">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" class="form-control" required autofocus/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" required/>
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Login</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "fans/base.html" %}
+{% block title %}News & Announcements — SHATTA FANS{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">News & <span class="gold">Announcements</span></h2>
+      <p class="section-sub">Direct updates from Shatta Wale</p>
+    </div>
+
+    {% if announcements %}
+    <div class="ann-list">
+      {% for ann in announcements %}
+      <div class="ann-item {% if ann.is_pinned %}ann-item-pinned{% endif %}">
+        {% if ann.is_pinned %}<div class="ann-pin">📌 Pinned</div>{% endif %}
+        <div class="ann-meta">
+          <span class="ann-cat">{{ ann.category.upper() }}</span>
+          <span class="ann-date-text">{{ ann.created_at[:10] }}</span>
+        </div>
+        <h3 class="ann-item-title">{{ ann.title }}</h3>
+        <p class="ann-item-body">{{ ann.body }}</p>
+        {% if ann.link_url %}
+          <a href="{{ ann.link_url }}" class="btn btn-sm btn-gold" target="_blank">View More</a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📢</div>
+      <h3>No announcements yet</h3>
+      <p>Check back soon for updates from Shatta Wale.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
