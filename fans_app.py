@@ -210,7 +210,7 @@ def fans_directory():
         query += " AND country = ?"
         params.append(country)
     if search:
-        query += " AND (full_name LIKE ? OR city LIKE ?)"
+        query += " AND (full_name ILIKE ? OR city ILIKE ?)"
         params += [f"%{search}%", f"%{search}%"]
     query += " ORDER BY registered_at DESC LIMIT 100"
     fans = db.execute(query, params).fetchall()
@@ -279,10 +279,10 @@ def admin_dashboard():
     db = get_db()
     total_fans = db.execute("SELECT COUNT(*) FROM fans").fetchone()[0]
     fans_today = db.execute(
-        "SELECT COUNT(*) FROM fans WHERE DATE(registered_at) = DATE('now')"
+        "SELECT COUNT(*) FROM fans WHERE DATE(registered_at) = CURRENT_DATE"
     ).fetchone()[0]
     fans_this_week = db.execute(
-        "SELECT COUNT(*) FROM fans WHERE registered_at >= datetime('now', '-7 days')"
+        "SELECT COUNT(*) FROM fans WHERE registered_at >= NOW() - INTERVAL '7 days'"
     ).fetchone()[0]
     by_continent = db.execute("""
         SELECT f.continent, COUNT(fa.id) as cnt
@@ -318,7 +318,7 @@ def admin_fans():
         query += " AND country = ?"
         params.append(country)
     if search:
-        query += " AND (full_name LIKE ? OR email LIKE ? OR city LIKE ?)"
+        query += " AND (full_name ILIKE ? OR email ILIKE ? OR city ILIKE ?)"
         params += [f"%{search}%", f"%{search}%", f"%{search}%"]
     query += " ORDER BY registered_at DESC"
     fans = db.execute(query, params).fetchall()
@@ -515,7 +515,7 @@ def admin_gold_card_approve(card_id):
     db = get_db()
     valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
     db.execute("""
-        UPDATE gold_cards SET status='active', valid_until=?, approved_at=datetime('now')
+        UPDATE gold_cards SET status='active', valid_until=?, approved_at=NOW()
         WHERE id=?
     """, (valid_until, card_id))
     db.commit()

@@ -1,93 +1,184 @@
-import sqlite3
 import os
-from datetime import datetime
+import psycopg2
+import psycopg2.extras
+from datetime import datetime as _dt, date as _date
+from werkzeug.security import generate_password_hash
 
-DB_PATH = os.environ.get("DB_PATH", "fans.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+
+def _fix_url(url):
+    # Railway gives postgres:// but psycopg2 needs postgresql://
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
+class _Row:
+    """Wraps a psycopg2 RealDictRow so templates can use row.col and row["col"] and row[0]."""
+
+    def __init__(self, d):
+        processed = {}
+        if d:
+            for k, v in d.items():
+                if isinstance(v, _dt):
+                    processed[k] = v.strftime('%Y-%m-%d %H:%M:%S')
+                elif isinstance(v, _date):
+                    processed[k] = v.strftime('%Y-%m-%d')
+                else:
+                    processed[k] = v
+        object.__setattr__(self, '_d', processed)
+        object.__setattr__(self, '_vals', list(processed.values()))
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return object.__getattribute__(self, '_vals')[key]
+        return object.__getattribute__(self, '_d')[key]
+
+    def __getattr__(self, key):
+        d = object.__getattribute__(self, '_d')
+        try:
+            return d[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __bool__(self):
+        return bool(object.__getattribute__(self, '_d'))
+
+    def get(self, key, default=None):
+        return object.__getattribute__(self, '_d').get(key, default)
+
+    def keys(self):
+        return object.__getattribute__(self, '_d').keys()
+
+    def __iter__(self):
+        return iter(object.__getattribute__(self, '_d'))
+
+
+class _Cursor:
+    def __init__(self, cur):
+        self._cur = cur
+
+    def fetchone(self):
+        row = self._cur.fetchone()
+        return _Row(row) if row is not None else None
+
+    def fetchall(self):
+        return [_Row(r) for r in self._cur.fetchall()]
+
+    def __iter__(self):
+        return (_Row(r) for r in self._cur)
+
+
+class _Conn:
+    """Thin psycopg2 wrapper that accepts SQLite-style ? placeholders."""
+
+    def __init__(self, conn):
+        self._conn = conn
+        self._cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    def execute(self, sql, params=()):
+        self._cur.execute(sql.replace("?", "%s"), params)
+        return _Cursor(self._cur)
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    return conn
+    conn = psycopg2.connect(_fix_url(DATABASE_URL))
+    return _Conn(conn)
+
 
 def init_db():
-    conn = get_db()
-    c = conn.cursor()
+    conn = psycopg2.connect(_fix_url(DATABASE_URL))
+    cur = conn.cursor()
 
-    c.executescript("""
-    CREATE TABLE IF NOT EXISTS fans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fan_number TEXT UNIQUE NOT NULL,
-        full_name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        phone TEXT NOT NULL,
-        whatsapp TEXT,
-        country TEXT NOT NULL,
-        city TEXT NOT NULL,
-        instagram TEXT,
-        tiktok TEXT,
-        twitter TEXT,
-        facebook TEXT,
-        favorite_songs TEXT,
-        fan_since INTEGER,
-        fanbase_id INTEGER,
-        is_verified INTEGER DEFAULT 0,
-        registered_at TEXT DEFAULT (datetime('now'))
-    );
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fans (
+            id SERIAL PRIMARY KEY,
+            fan_number TEXT UNIQUE NOT NULL,
+            full_name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT NOT NULL,
+            whatsapp TEXT,
+            country TEXT NOT NULL,
+            city TEXT NOT NULL,
+            instagram TEXT,
+            tiktok TEXT,
+            twitter TEXT,
+            facebook TEXT,
+            favorite_songs TEXT,
+            fan_since INTEGER,
+            fanbase_id INTEGER,
+            is_verified INTEGER DEFAULT 0,
+            registered_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
 
-    CREATE TABLE IF NOT EXISTS fanbases (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        country TEXT NOT NULL,
-        city TEXT,
-        continent TEXT NOT NULL,
-        leader_name TEXT,
-        leader_contact TEXT,
-        member_count INTEGER DEFAULT 0,
-        is_official INTEGER DEFAULT 1,
-        created_at TEXT DEFAULT (datetime('now'))
-    );
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fanbases (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            country TEXT NOT NULL,
+            city TEXT,
+            continent TEXT NOT NULL,
+            leader_name TEXT,
+            leader_contact TEXT,
+            member_count INTEGER DEFAULT 0,
+            is_official INTEGER DEFAULT 1,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
 
-    CREATE TABLE IF NOT EXISTS announcements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        body TEXT NOT NULL,
-        category TEXT DEFAULT 'general',
-        image_url TEXT,
-        link_url TEXT,
-        is_pinned INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now'))
-    );
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS announcements (
+            id SERIAL PRIMARY KEY,
+            title TEXT NOT NULL,
+            body TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            image_url TEXT,
+            link_url TEXT,
+            is_pinned INTEGER DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
 
-    CREATE TABLE IF NOT EXISTS admins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now'))
-    );
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
 
-    CREATE TABLE IF NOT EXISTS gold_cards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fan_id INTEGER UNIQUE NOT NULL,
-        card_number TEXT UNIQUE NOT NULL,
-        status TEXT DEFAULT 'pending',
-        proof_path TEXT,
-        amount_paid INTEGER DEFAULT 100,
-        valid_until TEXT,
-        approved_at TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (fan_id) REFERENCES fans(id)
-    );
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS gold_cards (
+            id SERIAL PRIMARY KEY,
+            fan_id INTEGER UNIQUE NOT NULL REFERENCES fans(id),
+            card_number TEXT UNIQUE NOT NULL,
+            status TEXT DEFAULT 'pending',
+            proof_path TEXT,
+            amount_paid INTEGER DEFAULT 100,
+            valid_until TEXT,
+            approved_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
     """)
 
     conn.commit()
-    _seed_fanbases(c, conn)
-    _create_admin(c, conn)
+    _seed_fanbases(cur, conn)
+    _create_admin(cur, conn)
     conn.close()
 
-def _seed_fanbases(c, conn):
-    existing = c.execute("SELECT COUNT(*) FROM fanbases").fetchone()[0]
-    if existing > 0:
+
+def _seed_fanbases(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM fanbases")
+    if cur.fetchone()[0] > 0:
         return
 
     fanbases = [
@@ -114,23 +205,24 @@ def _seed_fanbases(c, conn):
     ]
 
     for name, country, city, continent in fanbases:
-        c.execute(
-            "INSERT INTO fanbases (name, country, city, continent) VALUES (?, ?, ?, ?)",
+        cur.execute(
+            "INSERT INTO fanbases (name, country, city, continent) VALUES (%s, %s, %s, %s)",
             (name, country, city, continent)
         )
     conn.commit()
 
-def _create_admin(c, conn):
-    from werkzeug.security import generate_password_hash
-    exists = c.execute("SELECT COUNT(*) FROM admins").fetchone()[0]
-    if exists:
+
+def _create_admin(cur, conn):
+    cur.execute("SELECT COUNT(*) FROM admins")
+    if cur.fetchone()[0] > 0:
         return
     pw = os.environ.get("ADMIN_PASSWORD", "ShattaFans2024!")
-    c.execute(
-        "INSERT INTO admins (username, password_hash) VALUES (?, ?)",
+    cur.execute(
+        "INSERT INTO admins (username, password_hash) VALUES (%s, %s)",
         ("admin", generate_password_hash(pw))
     )
     conn.commit()
+
 
 def generate_fan_number():
     import random
