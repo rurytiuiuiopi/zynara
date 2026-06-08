@@ -1,12 +1,14 @@
 import os
 import json
 import uuid
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, jsonify, send_from_directory, Response
+    session, flash, jsonify, send_from_directory, Response, abort
 )
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
@@ -15,6 +17,37 @@ from fans_db import get_db, init_db, generate_fan_number
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "shatta-fans-secret-2024")
+
+# Secure session cookies
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
+)
+
+# Rate limiting — max 10 login attempts per IP per 10 minutes
+_login_attempts = defaultdict(list)
+
+def _check_rate_limit(ip, max_attempts=10, window=600):
+    now = time.time()
+    attempts = [t for t in _login_attempts[ip] if now - t < window]
+    _login_attempts[ip] = attempts
+    if len(attempts) >= max_attempts:
+        return False
+    _login_attempts[ip].append(now)
+    return True
+
+# Security headers on every response
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    if request.is_secure:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 CARD_PRICE = 100  # GHS
 UPLOAD_DIR = os.path.join("static", "fans", "proofs")
@@ -217,12 +250,17 @@ def announcements():
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
-        username = request.form.get("username", "")
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+        if not _check_rate_limit(ip):
+            flash("Too many login attempts. Try again in 10 minutes.", "error")
+            return render_template("fans/admin/login.html")
+        username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         db = get_db()
         admin = db.execute("SELECT * FROM admins WHERE username = ?", (username,)).fetchone()
         db.close()
         if admin and check_password_hash(admin["password_hash"], password):
+            session.clear()
             session["admin_id"] = admin["id"]
             return redirect(url_for("admin_dashboard"))
         flash("Invalid credentials.", "error")
@@ -402,8 +440,22 @@ def gold_card_apply(fan_id):
 
         proof = request.files.get("proof")
         proof_path = None
+        ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
         if proof and proof.filename:
-            ext = secure_filename(proof.filename).rsplit(".", 1)[-1].lower()
+            ext = secure_filename(proof.filename).rsplit(".", 1)[-1].lower() if "." in proof.filename else ""
+            if ext not in ALLOWED_EXTENSIONS:
+                flash("Only image files are allowed (JPG, PNG, GIF).", "error")
+                db.close()
+                return render_template("fans/gold_card_apply.html",
+                    fan=fan, existing=existing, price=CARD_PRICE, momo=_momo_number())
+            proof.seek(0, 2)
+            size = proof.tell()
+            proof.seek(0)
+            if size > 5 * 1024 * 1024:
+                flash("File too large. Max 5MB.", "error")
+                db.close()
+                return render_template("fans/gold_card_apply.html",
+                    fan=fan, existing=existing, price=CARD_PRICE, momo=_momo_number())
             fname = f"{uuid.uuid4()}.{ext}"
             proof.save(os.path.join(UPLOAD_DIR, fname))
             proof_path = f"fans/proofs/{fname}"
