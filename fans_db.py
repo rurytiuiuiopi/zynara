@@ -1,17 +1,34 @@
 import os
 import psycopg2
 import psycopg2.extras
+from urllib.parse import urlparse
 from datetime import datetime as _dt, date as _date
 from werkzeug.security import generate_password_hash
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
+# Try each variable in order — Railway injects DATABASE_URL with internal socket,
+# so we prefer DATABASE_PUBLIC_URL or DB_URL if available.
+DATABASE_URL = (
+    os.environ.get("DB_URL") or
+    os.environ.get("DATABASE_PUBLIC_URL") or
+    os.environ.get("DATABASE_URL", "")
+)
 
 
-def _fix_url(url):
-    # Railway gives postgres:// but psycopg2 needs postgresql://
+def _conn_kwargs():
+    """Parse DATABASE_URL into individual psycopg2 connect kwargs."""
+    url = DATABASE_URL
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
-    return url
+        url = url.replace("postgres://", "postgresql://", 1)
+    p = urlparse(url)
+    return {
+        "host":     p.hostname,
+        "port":     p.port or 5432,
+        "dbname":   p.path.lstrip("/"),
+        "user":     p.username,
+        "password": p.password,
+        "sslmode":  "require",
+        "connect_timeout": 10,
+    }
 
 
 class _Row:
@@ -85,16 +102,19 @@ class _Conn:
         self._conn.commit()
 
     def close(self):
-        self._conn.close()
+        try:
+            self._conn.close()
+        except Exception:
+            pass
 
 
 def get_db():
-    conn = psycopg2.connect(_fix_url(DATABASE_URL))
+    conn = psycopg2.connect(**_conn_kwargs())
     return _Conn(conn)
 
 
 def init_db():
-    conn = psycopg2.connect(_fix_url(DATABASE_URL))
+    conn = psycopg2.connect(**_conn_kwargs())
     cur = conn.cursor()
 
     cur.execute("""
