@@ -560,8 +560,26 @@ def not_found(e):
     return render_template("fans/errors/404.html"), 404
 
 
+@app.route("/health")
+def health():
+    import os
+    db_url = os.environ.get("DB_URL") or os.environ.get("DATABASE_PUBLIC_URL") or os.environ.get("DATABASE_URL", "")
+    host = db_url.split("@")[-1][:30] if "@" in db_url else db_url[:30]
+    try:
+        from fans_db import get_db
+        db = get_db()
+        db.execute("SELECT 1")
+        db.close()
+        return jsonify({"status": "ok", "db_host": host})
+    except Exception as e:
+        return jsonify({"status": "error", "db_host": host, "error": str(e)}), 500
+
+
 def create_app():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        app.logger.error("DB init failed at startup: %s", e)
     return app
 
 
