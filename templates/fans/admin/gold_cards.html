@@ -39,13 +39,15 @@
               <a href="/static/{{ c.proof_path }}" target="_blank" class="btn btn-sm btn-outline">View</a>
             {% else %}—{% endif %}
           </span>
-          <span class="table-date">{{ c.created_at[:10] }}</span>
+          <span class="table-date">{{ (c.gc_created_at or '')[:10] }}</span>
           <span style="display:flex;gap:6px">
             {% if c.status == 'pending' %}
-              <form method="POST" action="{{ url_for('admin_gold_card_approve', card_id=c.id) }}">
+              <form method="POST" action="{{ url_for('admin_gold_card_approve', card_id=c.gc_id) }}">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-sm btn-gold">Approve</button>
               </form>
-              <form method="POST" action="{{ url_for('admin_gold_card_reject', card_id=c.id) }}" onsubmit="return confirm('Reject this?')">
+              <form method="POST" action="{{ url_for('admin_gold_card_reject', card_id=c.gc_id) }}" onsubmit="return confirm('Reject this?')">
+                <input type="hidden" name="_csrf" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn btn-sm btn-danger">Reject</button>
               </form>
             {% endif %}
