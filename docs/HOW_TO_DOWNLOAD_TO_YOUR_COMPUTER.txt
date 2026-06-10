@@ -1,0 +1,51 @@
+# HOW TO DOWNLOAD YOUR WEBSITE TO YOUR COMPUTER
+# ================================================
+# Do this ONCE. After that, you own a permanent copy forever.
+
+## STEP 1 — Install GitHub Desktop (Free)
+1. Go to: https://desktop.github.com
+2. Click "Download for Mac" or "Download for Windows"
+3. Install it like any normal app
+
+## STEP 2 — Sign In
+1. Open GitHub Desktop
+2. Click "Sign in to GitHub.com"
+3. Enter your GitHub username: rurytiuiuiopi
+4. Enter your GitHub password
+5. Click Authorize
+
+## STEP 3 — Download Your Website Code
+1. Click "Clone a Repository from the Internet"
+2. You will see your repos listed
+3. Click "rurytiuiuiopi/shatta---fans"
+4. Choose where to save it (e.g. Documents > ShattaFans)
+5. Click "Clone"
+6. DONE. Your entire website is now on your computer.
+
+## STEP 4 — Also Download the Backup Repo
+1. Repeat Step 3 for "rurytiuiuiopi/zynara"
+2. Save it next to the first one
+
+## WHAT YOU NOW HAVE ON YOUR COMPUTER
+ShattaFans/
+├── fans_app.py          ← Main website code
+├── fans_db.py           ← Database code
+├── templates/           ← All your web pages
+├── static/              ← Images and styling
+├── scripts/             ← Backup and monitoring tools
+├── docs/                ← This guide + master access doc
+└── requirements.txt     ← App dependencies
+
+## HOW TO KEEP IT UPDATED
+Whenever you want the latest version:
+1. Open GitHub Desktop
+2. Click "Fetch origin"
+3. Click "Pull origin"
+Your computer copy is now up to date.
+
+## MAKE AN EXTRA BACKUP TO A USB DRIVE
+1. Buy a USB drive (any size works)
+2. Copy the ShattaFans folder to the USB
+3. Label it "SHATTA FANS BACKUP"
+4. Store it somewhere safe
+5. Update it monthly

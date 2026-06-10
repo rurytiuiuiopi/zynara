@@ -10,15 +10,33 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
-# Environment
+# Environment — NEVER commit secrets
 .env
 .env.*
+*.env
+
+# Virtual environments
 venv/
 env/
+.venv/
 
 # Uploads (user-generated content)
 static/shatta/uploads/
+static/fans/proofs/
 
-# OS
+# Database backups — keep locally, never on GitHub
+scripts/backups/
+backups/
+
+# Private docs — NEVER on GitHub
+docs/MASTER_ACCESS.txt
+
+# OS files
 .DS_Store
 Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+

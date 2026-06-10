@@ -1,0 +1,48 @@
+# HOW TO SECURE YOUR ACCOUNTS LIKE A PRO
+# =========================================
+
+## STEP 1 — Enable 2FA on GitHub
+1. Go to: github.com
+2. Click your profile picture → Settings
+3. Click "Password and authentication"
+4. Click "Enable two-factor authentication"
+5. Choose "Authenticator app"
+6. Download Google Authenticator on your phone
+7. Scan the QR code
+8. IMPORTANT: Download and print the recovery codes
+9. Store them with your MASTER_ACCESS.txt document
+
+## STEP 2 — Enable 2FA on Railway
+1. Go to: railway.app
+2. Click your profile picture → Account Settings
+3. Find "Two Factor Authentication"
+4. Enable it using Google Authenticator
+5. Save recovery codes
+
+## STEP 3 — Secure Your Email
+Your email is the master key to everything.
+If someone hacks your email, they can reset all passwords.
+1. Go to your email settings
+2. Enable 2FA/Two-Step Verification
+3. Use a strong password (not the same as anything else)
+
+## STEP 4 — Get a Password Manager (Free)
+Download Bitwarden: https://bitwarden.com
+1. Create one master password (make it very strong)
+2. Store all your other passwords inside it
+3. Never forget a password again
+4. Works on iPhone, Android, computer
+
+## STEP 5 — Make Your GitHub Repos Private
+1. Go to: github.com/rurytiuiuiopi/shatta---fans
+2. Click "Settings"
+3. Scroll to bottom → "Danger Zone"
+4. Click "Change visibility" → "Make private"
+5. Repeat for: github.com/rurytiuiuiopi/zynara
+
+## STEP 6 — Check Your Domain Ownership
+1. Go to wherever you bought shattamovementfanbase.com
+2. Make sure it is registered in YOUR name
+3. Make sure YOUR email is the contact
+4. Enable auto-renewal so it never expires
+5. Write the expiry date in your MASTER_ACCESS.txt

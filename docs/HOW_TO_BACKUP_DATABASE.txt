@@ -1,0 +1,39 @@
+# HOW TO BACKUP YOUR FAN DATABASE
+# ==================================
+# Your fan data (registrations, payments, gold cards) lives in
+# Railway PostgreSQL. Back it up regularly. This is your business data.
+
+## WHAT IS IN THE DATABASE
+- Every fan who has registered
+- Every Gold Card payment
+- Every premium number request
+- All announcements you have posted
+- All fan reviews
+
+## HOW TO TAKE A MANUAL BACKUP
+From your computer terminal (Mac) or command prompt (Windows):
+  cd ShattaFans
+  bash scripts/backup.sh
+
+This creates a file like: scripts/backups/shatta_fans_20260610_143022.sql
+
+## WHERE BACKUPS ARE STORED
+scripts/backups/ folder on your computer
+
+## HOW OFTEN TO BACKUP
+- Minimum: Once per week
+- Recommended: Every day
+- Always: Before making any big changes
+
+## HOW TO RESTORE A BACKUP (if something goes wrong)
+1. Go to Railway → your PostgreSQL database
+2. Open the "Connect" tab
+3. Copy the connection string
+4. Run: psql YOUR_CONNECTION_STRING < backups/shatta_fans_TIMESTAMP.sql
+
+## SET UP AUTOMATIC DAILY BACKUPS (Advanced)
+On Mac:
+  crontab -e
+  Add this line: 0 9 * * * cd /path/to/ShattaFans && bash scripts/backup.sh
+
+This runs the backup every day at 9am automatically.

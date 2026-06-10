@@ -1,0 +1,34 @@
+# HOW TO ACCESS YOUR ADMIN DASHBOARD
+# ====================================
+
+## METHOD 1 — Quick Access (Recommended)
+Visit: https://shattamovementfanbase.com/admin/enter
+→ Logs you in automatically. No password needed.
+→ Requires ADMIN_BYPASS=true in Railway Variables.
+
+## METHOD 2 — Password Login
+Visit: https://shattamovementfanbase.com/admin/login
+→ Enter your ADMIN_PASSWORD from Railway Variables.
+
+## WHAT YOU CAN DO IN THE ADMIN
+- Dashboard: See all fans, countries, stats
+- All Fans: View, search every registered fan
+- Gold Cards: Approve/reject Gold Card payments
+- Payments: See all money received
+- Premium Numbers: Approve number claims
+- Reviews: Approve fan reviews
+- News: Post announcements to your fans
+- Fanbases: Manage SM world chapters
+- Export CSV: Download all fan data to Excel
+
+## PHONE ACCESS (iPhone)
+1. Open Safari
+2. Go to: shattamovementfanbase.com/admin/enter
+3. Tap Share button → Add to Home Screen
+4. Name it "SM Admin"
+5. Tap the icon anytime to open your dashboard
+
+## IF DASHBOARD IS BLANK OR FROZEN
+1. Close the page
+2. Go to: shattamovementfanbase.com/admin/enter
+3. It will log you back in automatically
