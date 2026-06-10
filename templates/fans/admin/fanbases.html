@@ -11,6 +11,7 @@
     <div class="dash-card" style="max-width:600px;margin-bottom:32px">
       <h3 class="card-title">Add New Chapter</h3>
       <form method="POST" class="form-grid-2">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}"/>
         <div class="form-group">
           <label>Chapter Name *</label>
           <input type="text" name="name" class="form-control" placeholder="e.g. SM Kenya" required/>
