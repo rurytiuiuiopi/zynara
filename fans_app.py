@@ -1,31 +1,47 @@
 import os
-import json
-import uuid
 import time
+import hmac
+import hashlib
+import secrets
+import smtplib
+import requests as _requests
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, jsonify, send_from_directory, Response, abort
+    session, flash, send_from_directory, Response, abort
 )
 from werkzeug.security import check_password_hash
-from werkzeug.utils import secure_filename
 
 from fans_db import get_db, init_db, generate_fan_number
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "shatta-fans-secret-2024")
 
-# Secure session cookies
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
 )
 
-# Rate limiting — max 10 login attempts per IP per 10 minutes
+# ── CSRF ──────────────────────────────────────────────────────────
+def _csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = secrets.token_hex(32)
+    return session['_csrf_token']
+
+def _check_csrf():
+    token = request.form.get('_csrf', '')
+    expected = session.get('_csrf_token', '')
+    return bool(expected) and hmac.compare_digest(token, expected)
+
+app.jinja_env.globals['csrf_token'] = _csrf_token
+
+# ── RATE LIMITING ─────────────────────────────────────────────────
 _login_attempts = defaultdict(list)
 
 def _check_rate_limit(ip, max_attempts=10, window=600):
@@ -37,7 +53,7 @@ def _check_rate_limit(ip, max_attempts=10, window=600):
     _login_attempts[ip].append(now)
     return True
 
-# Security headers on every response
+# ── SECURITY HEADERS ──────────────────────────────────────────────
 @app.after_request
 def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
@@ -49,12 +65,70 @@ def set_security_headers(response):
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     return response
 
-CARD_PRICE = 100  # GHS
+CARD_PRICE = 100
 UPLOAD_DIR = os.path.join("static", "fans", "proofs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _momo_number():
-    return os.environ.get("MOMO_NUMBER", "+233248716572")
+    return os.environ.get("MOMO_NUMBER", "")
+
+def _send_email(to_email, subject, html_body):
+    gmail_user = os.environ.get("GMAIL_USER", "")
+    gmail_pass = os.environ.get("GMAIL_APP_PASSWORD", "")
+    if not gmail_user or not gmail_pass:
+        return
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Shatta Movement <{gmail_user}>"
+        msg["To"] = to_email
+        msg.attach(MIMEText(html_body, "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            s.login(gmail_user, gmail_pass)
+            s.sendmail(gmail_user, to_email, msg.as_string())
+    except Exception:
+        pass
+
+def _paystack_init(email, amount_ghs, reference, fan_id):
+    secret = os.environ.get("PAYSTACK_SECRET_KEY", "")
+    if not secret:
+        return None
+    try:
+        resp = _requests.post(
+            "https://api.paystack.co/transaction/initialize",
+            headers={"Authorization": f"Bearer {secret}"},
+            json={
+                "email": email,
+                "amount": int(amount_ghs * 100),
+                "currency": "GHS",
+                "reference": reference,
+                "callback_url": "https://shattamovementfanbase.com/gold-card/callback",
+                "metadata": {"fan_id": fan_id}
+            },
+            timeout=10
+        )
+        data = resp.json()
+        if data.get("status"):
+            return data["data"]["authorization_url"]
+    except Exception:
+        pass
+    return None
+
+def _paystack_verify(reference):
+    secret = os.environ.get("PAYSTACK_SECRET_KEY", "")
+    if not secret:
+        return False
+    try:
+        resp = _requests.get(
+            f"https://api.paystack.co/transaction/verify/{reference}",
+            headers={"Authorization": f"Bearer {secret}"},
+            timeout=10
+        )
+        data = resp.json()
+        return data.get("status") and data["data"]["status"] == "success"
+    except Exception:
+        return False
+
 
 COUNTRIES = [
     "Afghanistan","Albania","Algeria","Angola","Argentina","Armenia","Australia",
@@ -87,7 +161,18 @@ def admin_required(f):
     return decorated
 
 
-# ── PUBLIC ROUTES ──────────────────────────────────────────────
+# ── DECOY ROUTES — /admin returns 404 ────────────────────────────
+@app.route("/admin", methods=["GET", "POST"])
+@app.route("/admin/", methods=["GET", "POST"])
+@app.route("/admin/login", methods=["GET", "POST"])
+@app.route("/admin/dashboard", methods=["GET", "POST"])
+@app.route("/admin/fans", methods=["GET", "POST"])
+@app.route("/admin/gold-cards", methods=["GET", "POST"])
+def admin_decoy():
+    abort(404)
+
+
+# ── PUBLIC ROUTES ──────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -245,9 +330,9 @@ def announcements():
     return render_template("fans/announcements.html", announcements=items)
 
 
-# ── ADMIN ROUTES ───────────────────────────────────────────────
+# ── REAL ADMIN ROUTES at /smcp-9f4x/ ──────────────────────────────
 
-@app.route("/admin/login", methods=["GET", "POST"])
+@app.route("/smcp-9f4x/login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
         ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
@@ -267,13 +352,13 @@ def admin_login():
     return render_template("fans/admin/login.html")
 
 
-@app.route("/admin/logout")
+@app.route("/smcp-9f4x/logout")
 def admin_logout():
     session.pop("admin_id", None)
     return redirect(url_for("index"))
 
 
-@app.route("/admin")
+@app.route("/smcp-9f4x/")
 @admin_required
 def admin_dashboard():
     db = get_db()
@@ -306,7 +391,7 @@ def admin_dashboard():
     )
 
 
-@app.route("/admin/fans")
+@app.route("/smcp-9f4x/fans")
 @admin_required
 def admin_fans():
     db = get_db()
@@ -332,11 +417,13 @@ def admin_fans():
     )
 
 
-@app.route("/admin/announce", methods=["GET", "POST"])
+@app.route("/smcp-9f4x/announce", methods=["GET", "POST"])
 @admin_required
 def admin_announce():
     db = get_db()
     if request.method == "POST":
+        if not _check_csrf():
+            abort(403)
         title = request.form.get("title", "").strip()
         body = request.form.get("body", "").strip()
         category = request.form.get("category", "general")
@@ -357,9 +444,11 @@ def admin_announce():
     return render_template("fans/admin/announce.html", announcements=items)
 
 
-@app.route("/admin/announce/delete/<int:ann_id>", methods=["POST"])
+@app.route("/smcp-9f4x/announce/delete/<int:ann_id>", methods=["POST"])
 @admin_required
 def admin_announce_delete(ann_id):
+    if not _check_csrf():
+        abort(403)
     db = get_db()
     db.execute("DELETE FROM announcements WHERE id = ?", (ann_id,))
     db.commit()
@@ -367,7 +456,7 @@ def admin_announce_delete(ann_id):
     return redirect(url_for("admin_announce"))
 
 
-@app.route("/admin/export")
+@app.route("/smcp-9f4x/export")
 @admin_required
 def admin_export():
     db = get_db()
@@ -382,7 +471,6 @@ def admin_export():
             f["facebook"] or "", (f["favorite_songs"] or "").replace(",", ";"),
             str(f["fan_since"] or ""), f["registered_at"]
         ]))
-    from flask import Response
     return Response(
         "\n".join(lines),
         mimetype="text/csv",
@@ -390,11 +478,13 @@ def admin_export():
     )
 
 
-@app.route("/admin/fanbases", methods=["GET", "POST"])
+@app.route("/smcp-9f4x/fanbases", methods=["GET", "POST"])
 @admin_required
 def admin_fanbases():
     db = get_db()
     if request.method == "POST":
+        if not _check_csrf():
+            abort(403)
         name = request.form.get("name", "").strip()
         country = request.form.get("country", "").strip()
         city = request.form.get("city", "").strip()
@@ -415,7 +505,7 @@ def admin_fanbases():
     return render_template("fans/admin/fanbases.html", fanbases=fanbases)
 
 
-# ── GOLD CARD ROUTES ───────────────────────────────────────────
+# ── GOLD CARD ROUTES ───────────────────────────────────────────────
 
 @app.route("/gold-card")
 def gold_card_info():
@@ -424,6 +514,7 @@ def gold_card_info():
 
 @app.route("/gold-card/apply/<int:fan_id>", methods=["GET", "POST"])
 def gold_card_apply(fan_id):
+    import random
     db = get_db()
     fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
     if not fan:
@@ -431,76 +522,142 @@ def gold_card_apply(fan_id):
         return redirect(url_for("index"))
 
     existing = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
+    if existing and existing["status"] == "active":
+        db.close()
+        return redirect(url_for("gold_card_status", fan_id=fan_id))
 
     if request.method == "POST":
-        if existing:
-            flash("You already have a card application.", "error")
+        if existing and existing["status"] == "pending":
             db.close()
             return redirect(url_for("gold_card_status", fan_id=fan_id))
 
-        proof = request.files.get("proof")
-        proof_path = None
-        ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
-        if proof and proof.filename:
-            ext = secure_filename(proof.filename).rsplit(".", 1)[-1].lower() if "." in proof.filename else ""
-            if ext not in ALLOWED_EXTENSIONS:
-                flash("Only image files are allowed (JPG, PNG, GIF).", "error")
-                db.close()
-                return render_template("fans/gold_card_apply.html",
-                    fan=fan, existing=existing, price=CARD_PRICE, momo=_momo_number())
-            proof.seek(0, 2)
-            size = proof.tell()
-            proof.seek(0)
-            if size > 5 * 1024 * 1024:
-                flash("File too large. Max 5MB.", "error")
-                db.close()
-                return render_template("fans/gold_card_apply.html",
-                    fan=fan, existing=existing, price=CARD_PRICE, momo=_momo_number())
-            fname = f"{uuid.uuid4()}.{ext}"
-            proof.save(os.path.join(UPLOAD_DIR, fname))
-            proof_path = f"fans/proofs/{fname}"
+        reference = f"SMGC-{fan_id}-{int(time.time())}"
 
-        # Generate card number: SM XXXX XXXX XXXX XXXX
-        import random
-        parts = [str(random.randint(1000, 9999)) for _ in range(4)]
-        card_number = "SM " + " ".join(parts)
-        while db.execute("SELECT id FROM gold_cards WHERE card_number = ?", (card_number,)).fetchone():
+        if existing and existing["status"] == "rejected":
+            db.execute("UPDATE gold_cards SET status='pending', proof_path=? WHERE fan_id=?",
+                       (reference, fan_id))
+        else:
             parts = [str(random.randint(1000, 9999)) for _ in range(4)]
             card_number = "SM " + " ".join(parts)
-
-        db.execute("""
-            INSERT INTO gold_cards (fan_id, card_number, proof_path, amount_paid)
-            VALUES (?, ?, ?, ?)
-        """, (fan_id, card_number, proof_path, CARD_PRICE))
+            while db.execute("SELECT id FROM gold_cards WHERE card_number = ?", (card_number,)).fetchone():
+                parts = [str(random.randint(1000, 9999)) for _ in range(4)]
+                card_number = "SM " + " ".join(parts)
+            db.execute(
+                "INSERT INTO gold_cards (fan_id, card_number, proof_path, amount_paid) VALUES (?, ?, ?, ?)",
+                (fan_id, card_number, reference, CARD_PRICE)
+            )
         db.commit()
         db.close()
-        flash("Application submitted! Admin will verify your payment within 24 hours.", "success")
-        return redirect(url_for("gold_card_status", fan_id=fan_id))
+
+        auth_url = _paystack_init(fan["email"], CARD_PRICE, reference, fan_id)
+        if not auth_url:
+            flash("Payment service unavailable. Please try again shortly.", "error")
+            return redirect(url_for("gold_card_apply", fan_id=fan_id))
+        return redirect(auth_url)
 
     db.close()
     return render_template("fans/gold_card_apply.html",
-        fan=fan, existing=existing, price=CARD_PRICE,
-        momo=_momo_number()
+        fan=fan, existing=existing, price=CARD_PRICE
     )
+
+
+@app.route("/gold-card/callback")
+def gold_card_callback():
+    reference = request.args.get("reference", "")
+    if not reference.startswith("SMGC-"):
+        return redirect(url_for("index"))
+    try:
+        fan_id = int(reference.split("-")[1])
+    except (IndexError, ValueError):
+        return redirect(url_for("index"))
+
+    if _paystack_verify(reference):
+        db = get_db()
+        valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
+        db.execute("""
+            UPDATE gold_cards SET status='active', valid_until=?, approved_at=NOW()
+            WHERE fan_id=? AND proof_path=?
+        """, (valid_until, fan_id, reference))
+        db.commit()
+        fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
+        db.close()
+        if fan and fan["email"]:
+            _send_email(
+                fan["email"],
+                "🏆 Your SM Gold Card is Now Active!",
+                f"""
+                <div style="font-family:sans-serif;max-width:560px;margin:auto;background:#0a0a0a;color:#fff;padding:32px;border-radius:16px">
+                  <div style="text-align:center;margin-bottom:24px">
+                    <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;font-size:24px;letter-spacing:3px;padding:12px 24px;border-radius:12px;display:inline-block">SM</div>
+                    <h2 style="color:#f0c040;margin-top:12px">Your Gold Card is Active!</h2>
+                  </div>
+                  <p>Hi <strong>{fan["full_name"]}</strong>,</p>
+                  <p style="color:#aaa">Your MoMo payment has been confirmed. Your <strong style="color:#f0c040">SM Gold Membership Card</strong> is now active!</p>
+                  <div style="text-align:center;margin-top:24px">
+                    <a href="https://shattamovementfanbase.com/gold-card/status/{fan_id}" style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;display:inline-block">View My Gold Card</a>
+                  </div>
+                  <p style="color:#555;font-size:12px;text-align:center;margin-top:24px">Shatta Movement Official Fan Platform</p>
+                </div>
+                """
+            )
+        flash("Payment confirmed! Your Gold Card is now active.", "success")
+    else:
+        flash("Payment not confirmed yet. If you paid, please check back in a few minutes.", "error")
+
+    return redirect(url_for("gold_card_status", fan_id=fan_id))
+
+
+@app.route("/paystack/webhook", methods=["POST"])
+def paystack_webhook():
+    signature = request.headers.get("X-Paystack-Signature", "")
+    payload = request.get_data()
+    secret = os.environ.get("PAYSTACK_SECRET_KEY", "")
+    computed = hmac.new(secret.encode(), payload, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(computed, signature):
+        abort(400)
+    event = request.get_json(silent=True) or {}
+    if event.get("event") == "charge.success":
+        reference = event.get("data", {}).get("reference", "")
+        if reference.startswith("SMGC-"):
+            try:
+                fan_id = int(reference.split("-")[1])
+                db = get_db()
+                valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
+                db.execute("""
+                    UPDATE gold_cards SET status='active', valid_until=?, approved_at=NOW()
+                    WHERE fan_id=? AND proof_path=? AND status != 'active'
+                """, (valid_until, fan_id, reference))
+                db.commit()
+                db.close()
+            except Exception:
+                pass
+    return "", 200
 
 
 @app.route("/gold-card/status/<int:fan_id>")
 def gold_card_status(fan_id):
     db = get_db()
     fan = db.execute("SELECT * FROM fans WHERE id = ?", (fan_id,)).fetchone()
-    card = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
-    db.close()
     if not fan:
+        db.close()
         return redirect(url_for("index"))
-    return render_template("fans/gold_card_status.html", fan=fan, card=card)
+    raw_card = db.execute("SELECT * FROM gold_cards WHERE fan_id = ?", (fan_id,)).fetchone()
+    db.close()
+    active_card = raw_card if (raw_card and raw_card["status"] == "active") else None
+    pending = bool(raw_card and raw_card["status"] == "pending")
+    rejected = bool(raw_card and raw_card["status"] == "rejected")
+    return render_template("fans/gold_card_status.html",
+        fan=fan, card=active_card, pending=pending, rejected=rejected)
 
 
-@app.route("/admin/gold-cards")
+@app.route("/smcp-9f4x/gold-cards")
 @admin_required
 def admin_gold_cards():
     db = get_db()
     cards = db.execute("""
-        SELECT gc.*, f.full_name, f.country, f.city, f.phone, f.fan_number
+        SELECT gc.id as gc_id, gc.fan_id, gc.card_number, gc.status,
+               gc.valid_until, gc.created_at as gc_created_at,
+               f.full_name, f.country, f.city, f.phone, f.email, f.fan_number
         FROM gold_cards gc
         JOIN fans f ON f.id = gc.fan_id
         ORDER BY gc.created_at DESC
@@ -509,9 +666,11 @@ def admin_gold_cards():
     return render_template("fans/admin/gold_cards.html", cards=cards)
 
 
-@app.route("/admin/gold-cards/approve/<int:card_id>", methods=["POST"])
+@app.route("/smcp-9f4x/gold-cards/approve/<int:card_id>", methods=["POST"])
 @admin_required
 def admin_gold_card_approve(card_id):
+    if not _check_csrf():
+        abort(403)
     db = get_db()
     valid_until = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
     db.execute("""
@@ -524,14 +683,98 @@ def admin_gold_card_approve(card_id):
     return redirect(url_for("admin_gold_cards"))
 
 
-@app.route("/admin/gold-cards/reject/<int:card_id>", methods=["POST"])
+@app.route("/smcp-9f4x/gold-cards/reject/<int:card_id>", methods=["POST"])
 @admin_required
 def admin_gold_card_reject(card_id):
+    if not _check_csrf():
+        abort(403)
     db = get_db()
+    card = db.execute("""
+        SELECT gc.id, gc.fan_id, f.full_name, f.email, f.fan_number
+        FROM gold_cards gc JOIN fans f ON f.id = gc.fan_id
+        WHERE gc.id = ?
+    """, (card_id,)).fetchone()
     db.execute("UPDATE gold_cards SET status='rejected' WHERE id=?", (card_id,))
     db.commit()
     db.close()
-    flash("Gold Card rejected.", "error")
+    if card and card["email"]:
+        fan_link = f"https://shattamovementfanbase.com/gold-card/apply/{card['fan_id']}"
+        _send_email(
+            card["email"],
+            "SM Gold Card Application — Action Required",
+            f"""
+            <div style="font-family:sans-serif;max-width:560px;margin:auto;background:#0a0a0a;color:#fff;padding:32px;border-radius:16px">
+              <div style="text-align:center;margin-bottom:24px">
+                <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;font-size:24px;letter-spacing:3px;padding:12px 24px;border-radius:12px;display:inline-block">SM</div>
+                <h2 style="color:#fff;margin-top:12px">Gold Card Application Update</h2>
+              </div>
+              <p>Hi <strong>{card["full_name"]}</strong>,</p>
+              <p style="color:#aaa">Your SM Gold Card application (<strong style="color:#f0c040">{card["fan_number"]}</strong>) could not be processed. Your payment was not confirmed.</p>
+              <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;margin:20px 0">
+                <p style="margin:0;color:#eab308"><strong>To get your Gold Card:</strong></p>
+                <ol style="color:#aaa;margin-top:8px">
+                  <li>Click the button below to retry payment</li>
+                  <li>Complete the GHS 100 MoMo payment on the secure Paystack page</li>
+                  <li>Your card activates automatically once payment is confirmed</li>
+                </ol>
+              </div>
+              <div style="text-align:center;margin-top:24px">
+                <a href="{fan_link}" style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;display:inline-block">Try Again — Pay GHS 100</a>
+              </div>
+              <p style="color:#555;font-size:12px;text-align:center;margin-top:24px">Shatta Movement Official Fan Platform</p>
+            </div>
+            """
+        )
+    flash("Gold Card rejected — fan notified by email.", "error")
+    return redirect(url_for("admin_gold_cards"))
+
+
+@app.route("/smcp-9f4x/gold-cards/reject-all", methods=["POST"])
+@admin_required
+def admin_gold_card_reject_all():
+    if not _check_csrf():
+        abort(403)
+    db = get_db()
+    pending = db.execute("""
+        SELECT gc.id, gc.fan_id, f.full_name, f.email, f.fan_number
+        FROM gold_cards gc JOIN fans f ON f.id = gc.fan_id
+        WHERE gc.status = 'pending'
+    """).fetchall()
+    db.execute("UPDATE gold_cards SET status='rejected' WHERE status='pending'")
+    db.commit()
+    db.close()
+    count = 0
+    for p in pending:
+        if p["email"]:
+            fan_link = f"https://shattamovementfanbase.com/gold-card/apply/{p['fan_id']}"
+            _send_email(
+                p["email"],
+                "SM Gold Card — Payment Not Confirmed",
+                f"""
+                <div style="font-family:sans-serif;max-width:560px;margin:auto;background:#0a0a0a;color:#fff;padding:32px;border-radius:16px">
+                  <div style="text-align:center;margin-bottom:24px">
+                    <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;font-size:24px;letter-spacing:3px;padding:12px 24px;border-radius:12px;display:inline-block">SM</div>
+                    <h2 style="color:#fff;margin-top:12px">Gold Card Application Update</h2>
+                  </div>
+                  <p>Hi <strong>{p["full_name"]}</strong>,</p>
+                  <p style="color:#aaa">Your SM Gold Card application (<strong style="color:#f0c040">{p["fan_number"]}</strong>) could not be confirmed. Your MoMo payment of <strong>GHS 100</strong> was not verified.</p>
+                  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;margin:20px 0">
+                    <p style="color:#eab308;margin:0"><strong>To get your Gold Card:</strong></p>
+                    <ol style="color:#aaa;margin-top:8px">
+                      <li>Click the button below to retry payment</li>
+                      <li>Complete the GHS 100 MoMo payment on the secure Paystack page</li>
+                      <li>Your card activates automatically — no waiting</li>
+                    </ol>
+                  </div>
+                  <div style="text-align:center;margin-top:24px">
+                    <a href="{fan_link}" style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;display:inline-block">Retry Payment — GHS 100</a>
+                  </div>
+                  <p style="color:#555;font-size:12px;text-align:center;margin-top:24px">Shatta Movement Official Fan Platform</p>
+                </div>
+                """
+            )
+            count += 1
+    flash(f"Rejected {len(pending)} pending applications. {count} email notifications sent.", "success")
     return redirect(url_for("admin_gold_cards"))
 
 
