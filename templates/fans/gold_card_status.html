@@ -49,9 +49,10 @@
 
       <div class="empty-state">
         <div class="empty-icon">⏳</div>
-        <h3>Payment Under Review</h3>
-        <p>Admin is verifying your MoMo payment.<br>Your Gold Card will activate within 24 hours once confirmed.</p>
+        <h3>Payment Processing</h3>
+        <p>Your MoMo payment is being confirmed.<br>Your Gold Card will activate automatically once payment is verified.</p>
         <p style="color:var(--text3);font-size:13px;margin-top:8px">{{ fan.full_name }} — {{ fan.fan_number }}</p>
+        <a href="{{ url_for('gold_card_status', fan_id=fan.id) }}" class="btn btn-outline" style="margin-top:16px">Refresh Status</a>
       </div>
 
     {% elif rejected %}
@@ -59,8 +60,8 @@
       <div class="empty-state">
         <div class="empty-icon">❌</div>
         <h3>Application Rejected</h3>
-        <p>Your payment could not be verified. Please make your MoMo payment and reapply.</p>
-        <a href="{{ url_for('gold_card_apply', fan_id=fan.id) }}" class="btn btn-gold" style="margin-top:16px">Reapply Now</a>
+        <p>Your payment could not be verified. Please try again.</p>
+        <a href="{{ url_for('gold_card_apply', fan_id=fan.id) }}" class="btn btn-gold" style="margin-top:16px">Try Again</a>
       </div>
 
     {% else %}
