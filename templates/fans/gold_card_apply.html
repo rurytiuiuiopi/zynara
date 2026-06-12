@@ -3,72 +3,59 @@
 
 {% block content %}
 <section class="section">
-  <div class="container" style="max-width:640px">
+  <div class="container" style="max-width:600px">
     <div class="section-header">
       <h2 class="section-title">Get Your <span class="gold">Gold Card</span></h2>
       <p class="section-sub">{{ fan.full_name }} — {{ fan.fan_number }}</p>
     </div>
 
-    {% if existing %}
-      <div class="alert alert-{% if existing.status == 'active' %}success{% elif existing.status == 'rejected' %}error{% else %}pending{% endif %}" style="position:static;max-width:100%;margin-bottom:24px">
-        {% if existing.status == 'active' %}✅ Your Gold Card is active!
-        {% elif existing.status == 'rejected' %}❌ Your application was rejected. Contact admin.
-        {% else %}⏳ Your application is under review.{% endif %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}" style="position:static;max-width:100%;margin-bottom:16px">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if existing and existing.status == 'active' %}
+      <div class="alert alert-success" style="position:static;max-width:100%;margin-bottom:24px">✅ Your Gold Card is already active!</div>
+      <a href="{{ url_for('gold_card_status', fan_id=fan.id) }}" class="btn btn-gold">View My Gold Card</a>
+
+    {% elif existing and existing.status == 'pending' %}
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:48px;margin-bottom:16px">⏳</div>
+        <h3>Payment Processing</h3>
+        <p style="color:var(--text2);margin-top:8px">Your MoMo payment is being confirmed. This usually completes instantly.<br>Check back in a moment.</p>
+        <a href="{{ url_for('gold_card_status', fan_id=fan.id) }}" class="btn btn-outline" style="margin-top:20px">Check Status</a>
       </div>
-      <a href="{{ url_for('gold_card_status', fan_id=fan.id) }}" class="btn btn-gold">View Card Status</a>
+
     {% else %}
 
-    <!-- STEP 1: PAY -->
-    <div class="apply-step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h3>Pay via MoMo</h3>
-        <p>Send <strong class="gold">GHS {{ price }}</strong> to the official SM MoMo number.</p>
-        <button class="btn btn-gold" id="revealBtn" onclick="revealMomo()">Tap to Reveal MoMo Number</button>
-        <div id="momoReveal" style="display:none;margin-top:16px">
-          <div class="momo-box">
-            <div class="momo-label">Send GHS {{ price }} to:</div>
-            <div class="momo-number">{{ momo }}</div>
-            <div class="momo-name">Shatta Movement Official</div>
-            <div class="momo-note">Reference: <strong>{{ fan.fan_number }}</strong></div>
-          </div>
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;padding:28px;margin-bottom:24px">
+      <h3 style="color:var(--gold);margin-bottom:20px">How it works</h3>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div><strong>Click Pay Now</strong><p style="color:var(--text2);font-size:14px;margin:4px 0 0">You'll be taken to a secure Paystack payment page</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+          <div><strong>Pay GHS {{ price }} via MoMo</strong><p style="color:var(--text2);font-size:14px;margin:4px 0 0">Enter your MoMo number and approve the prompt on your phone</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="background:linear-gradient(135deg,#b8860b,#f0c040);color:#000;font-weight:900;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+          <div><strong>Gold Card activates instantly</strong><p style="color:var(--text2);font-size:14px;margin:4px 0 0">Payment confirmed = card live immediately. No waiting.</p></div>
         </div>
       </div>
     </div>
 
-    <!-- STEP 2: UPLOAD -->
-    <div class="apply-step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h3>Upload Payment Screenshot</h3>
-        <p>Take a screenshot of your MoMo payment confirmation and upload it below.</p>
-        <form method="POST" enctype="multipart/form-data">
-          <div class="form-group">
-            <label>Payment Screenshot *</label>
-            <input type="file" name="proof" class="form-control" accept="image/*" required/>
-          </div>
-          <button type="submit" class="btn btn-gold mt-1">Submit Application</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- STEP 3 -->
-    <div class="apply-step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <h3>Get Your Gold Card</h3>
-        <p>Admin verifies your payment within 24 hours. Your Gold Card activates instantly upon approval.</p>
-      </div>
-    </div>
+    <form method="POST">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-gold" style="width:100%;padding:18px;font-size:18px;font-weight:800;border-radius:14px;letter-spacing:1px">
+        💳 Pay GHS {{ price }} — Get Gold Card Now
+      </button>
+    </form>
+    <p style="text-align:center;color:var(--text3);font-size:13px;margin-top:12px">🔒 Secured by Paystack · MoMo accepted · No screenshots needed</p>
 
     {% endif %}
   </div>
 </section>
-
-<script>
-function revealMomo() {
-  document.getElementById('momoReveal').style.display = 'block';
-  document.getElementById('revealBtn').style.display = 'none';
-}
-</script>
 {% endblock %}
